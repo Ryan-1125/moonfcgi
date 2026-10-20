@@ -4,7 +4,7 @@
 
 ## 快速运行
 
-已验证工具链：moon 0.1.20260920 / moonc v0.10.14+7d59c7ec9，Windows x64 native、Node 22.22.1、Nginx 1.28.0、Go 1.23.2。其他平台的 CI 已配置，尚无远程执行结果。
+当前代码使用 moon 0.1.20261016 / moonc v0.10.16+b1a0e846e（含 Int32 新语法），旧版 0.10.14 不能检查当前源码。已验证 Windows x64 native（Nginx 1.28.0）和 Ubuntu 24.04 native（Nginx 1.24.0），Go 参考版本固定 1.23.2。Linux 格式/check/build/test、真实 TCP/Go/Nginx 和独立消费者均已在 [GitHub CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39408894313) 通过。
 
 ```sh
 moon check --target native
@@ -58,7 +58,7 @@ async fn main {
 | `encode_record / stream_records` | 8 字节 header、合法 padding、65535 字节分片、显式空记录结束流；输入是 bytes |
 | `ParamsDecoder.feed/finish` | 真正逐字节解析，长度前缀/名字/值可跨任意边界；总大小和数量有界；保留重复及非 UTF-8 参数 |
 | `Session.accept` | 接受完整 record，依次产生 Send / Ready / Aborted / Close；不操作 socket |
-| `Session.complete` | 只完成当前请求代次；中止后的旧结果忽略；先验证全部输出再完成会话 |
+| `Session.complete` | 绑定所属会话及请求代次；跨会话和中止后的旧结果忽略；先验证全部输出再完成会话 |
 | `Request.param/text_param` | 原始 bytes；显式严格 UTF-8 转换可抛错；重复键取最后一项，完整列表仍保留 |
 | `Response.new/cgi_bytes` | 有界缓冲正文；状态 200..599；有序重复头；生成 CGI Status 头、长度及输出流结束标记 |
 | `server.Handler/serve` | async 函数接口，多连接并发；每连接一个活动请求，拥有 listener 和所有已接收 socket |
@@ -91,4 +91,5 @@ node tools/consumer.mjs
 Windows 将 go-ref 输出命名为 `.exe`，环境变量用 PowerShell `$env:NAME='...'` 设置。集成脚本默认使用工作区 `../work` 中的本地工具；Linux CI 通过环境变量指定。端口固定为 19000/19001/19002/18080，运行前应空闲。失败即退出非零；SKIP_GO/SKIP_NGINX=1 只用于排障，完整验收不可跳过。集成日志写入 `../work/`。脚本在 finally 中停止本轮启动的进程。
 
 见 [验证记录](docs/VALIDATION.md)、[来源与查重](docs/RESEARCH.md)、[第三方许可](THIRD_PARTY_NOTICES.md)。FastCGI 基于公开 1.0 规范独立实现；Go 源码用于行为参考和差分测试，不是通过 FFI 代理。项目 Apache-2.0，Go 标准库 BSD-3-Clause 来源许可证保留于 `licenses/Go-LICENSE`。
+
 

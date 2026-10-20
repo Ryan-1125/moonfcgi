@@ -74,13 +74,22 @@ Nginx 会将较大 POST 缓冲到临时文件，error.log 的这一 warning 是 
 
 ## 未完成的外部步骤及适用限制
 
-- `.github/workflows/ci.yml` 已配置 Linux 格式/check/build/test、真实 TCP/Go/Nginx、独立消费者，已推送到公开仓库，远程结果待本轮 GitHub Actions 实际执行确认。
+- `.github/workflows/ci.yml` 已配置 Linux 格式/check/build/test、真实 TCP/Go/Nginx、独立消费者，已推送到公开仓库，Linux CI 已真实通过：https://github.com/Ryan-1125/moonfcgi/actions/runs/39408894313 。
 - 官方旧版 Linux 工具链 URL 现场返回 403，CI 因此采用官方 latest 安装器并记录版本；Go 固定 1.23.2，Nginx 使用 Ubuntu 仓库版本。CI 的 Moon/Nginx 版本与本地可能不同，兼容性必须以 CI 实际结果判断。
 - 未发布 Mooncakes。安装包验证是本地 ZIP + 独立 workspace 消费，**不是**注册表下载验证。发布后仍需全新目录执行 `moon add Ryan-1125/moonfcgi@0.1.0`，移除本地 workspace 替代，再运行消费者。
-- 未做性能基准、长期压力测试、Windows 以外平台验证或生产级安全审计。无性能数字或全平台支持声明。
+- 现已验证 Ubuntu 24.04 native；未做性能基准、长期压力测试、其他平台验证或生产级安全审计。无性能数字或全平台支持声明。
 - 公开仓库已按用户授权建立并推送：https://github.com/Ryan-1125/moonfcgi 。Mooncakes namespace 仍待核实，未发布或报名。
 
 ## 建库前新增回归（2026-10-20）
 
 复现并修复了跨会话同 ID/序号误完成；CGI Status 增加固定安全 reason phrase。新增真实 TCP 的 STDOUT/STDERR 空终止、HEAD、超限响应后恢复及 Nginx 204/304/超限回退检查；本轮 15 项核心测试和 12 组联调通过。公开仓库保留连续真实开发历史，首次推送包含 10 个提交；以后正常维护可能超过 10 个。
+
+
+## 真实 Linux CI 与当前 SDK
+
+2026-10-20，GitHub Actions run 39408894313 全部步骤成功：Ubuntu 24.04、moon 0.1.20261016、moonc v0.10.16+b1a0e846e、Go 1.23.2、Nginx 1.24.0。包含格式检查、检查、构建、15 项核心测试、12 组真实协议/Go/Nginx 联调和独立包消费者。
+
+此前两轮失败记录保留在 Actions：第一轮新版格式差异及 artifact 路径不合法；第二轮 fresh runner 缺少 registry index。已分别修复，没有删除失败记录或跳过失败测试。
+
+Windows 上同版本 SDK 安装在工作区 ../work/moon-sdk，未替换用户系统 SDK；新版代码已使用 Int32，旧全局 0.10.14 不再适用。当前目录的外部 outputs/Open-MoonFCGI.ps1 会用匹配 SDK 启动独立 VS Code 窗口。其他机器请安装当前官方 SDK，先执行 moon update。上方旧 SDK 表格为首次验收的历史记录。
 
