@@ -1,0 +1,56 @@
+name: native protocol and interoperability
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.2'
+          cache: false
+      # The installer supports latest. The local 0.1.20260920 archive URL
+      # currently returns 403, so do not pretend that version is pinned here.
+      - name: Install MoonBit and Nginx
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o /tmp/moon-install.sh
+          bash /tmp/moon-install.sh
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          sudo systemctl stop nginx || true
+      - name: Record actual versions
+        run: |
+          moon version --all
+          moonc -v
+          git --version
+          node --version
+          go version
+          nginx -v
+      - name: Format, check, build, core tests and API
+        run: |
+          moon fmt --check
+          moon check --target native
+          moon build --target native
+          moon test --target native
+          moon info
+          git diff --exit-code -- '*.mbti'
+      - name: Real TCP, fixed Go reference and real Nginx
+        run: |
+          mkdir -p ../work
+          go build -o ../work/go-ref tools/reference/main.go
+          GO_REFERENCE_BIN="$PWD/../work/go-ref" NGINX_BIN="$(command -v nginx)" node tools/integration.mjs
+      - name: Independent package consumer
+        run: node tools/consumer.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: interoperability-logs
+          path: |
+            ../work/*.log
+            ../work/nginx-test/logs/

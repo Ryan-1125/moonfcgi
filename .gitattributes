@@ -1,0 +1,9 @@
+* text=auto
+*.mbt text eol=lf
+*.mbti text eol=lf
+*.mjs text eol=lf
+*.go text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+moon.mod text eol=lf
+moon.pkg text eol=lf

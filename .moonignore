@@ -1,0 +1,5 @@
+AGENTS.md
+.githooks/
+.github/
+tools/
+*.log
