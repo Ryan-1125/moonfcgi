@@ -34,6 +34,7 @@ jobs:
           nginx -v
       - name: Format, check, build, core tests and API
         run: |
+          moon update
           moon fmt --check
           moon check --target native
           moon build --target native
