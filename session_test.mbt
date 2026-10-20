@@ -91,7 +91,7 @@ test "CGI header validation and byte body" {
   ])
   assert_eq(
     r.cgi_bytes(),
-    b"Status: 404\r\nSet-Cookie: a=1\r\nSet-Cookie: b=2\r\nContent-Type: application/octet-stream\r\nContent-Length: 2\r\n\r\n\x00\xff",
+    b"Status: 404 Not Found\r\nSet-Cookie: a=1\r\nSet-Cookie: b=2\r\nContent-Type: application/octet-stream\r\nContent-Length: 2\r\n\r\n\x00\xff",
   )
   assert_true(
     try {

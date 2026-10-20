@@ -95,7 +95,7 @@ test "CONTENT_LENGTH validation and EOF request truncation" {
 test "HEAD, 204, 304, mutated headers and output bounds" {
   assert_eq(
     @moonfcgi.Response::new(b"body").cgi_bytes(head=true),
-    b"Status: 200\r\nContent-Type: application/octet-stream\r\nContent-Length: 4\r\n\r\n",
+    b"Status: 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 4\r\n\r\n",
   )
   for status in [204, 304] {
     let bytes = @moonfcgi.Response::new(b"ignored", status~).cgi_bytes()
@@ -116,6 +116,18 @@ test "HEAD, 204, 304, mutated headers and output bounds" {
   )
   assert_true(
     !s.complete(r, @moonfcgi.Response::new(b"", status=500)).is_empty(),
+  )
+}
+
+///|
+test "CGI status includes a safe reason phrase for common and extension codes" {
+  assert_eq(
+    @moonfcgi.Response::new(b"", status=201).cgi_bytes(),
+    b"Status: 201 Created\r\nContent-Type: application/octet-stream\r\nContent-Length: 0\r\n\r\n",
+  )
+  assert_eq(
+    @moonfcgi.Response::new(b"", status=299).cgi_bytes(),
+    b"Status: 299 Response\r\nContent-Type: application/octet-stream\r\nContent-Length: 0\r\n\r\n",
   )
 }
 

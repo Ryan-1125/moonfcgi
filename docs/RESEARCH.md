@@ -6,6 +6,8 @@ Local module initialized as Ryan-1125/moonfcgi; no remote or registry publicatio
 
 Protocol: FastCGI 1.0, Open Market 1996-04-29, sections 3–6:
 https://fastcgi-archives.github.io/FastCGI_Specification.html
+CGI Status syntax also checked against RFC 3875 section 6.3.3:
+https://www.rfc-editor.org/rfc/rfc3875.html#section-6.3.3 . Emit code, space and a fixed safe reason phrase; extension codes retain their numeric value with generic "Response" text.
 Reference code inspected: Go go1.23.2, src/net/http/fcgi/{child.go,fcgi.go,fcgi_test.go}.
 Sources obtained from raw.githubusercontent.com/golang/go/go1.23.2. Their BSD-3-Clause license must accompany any adapted code/tests.
 
