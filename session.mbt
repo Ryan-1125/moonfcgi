@@ -48,14 +48,14 @@ pub(all) enum Event {
 
 ///|
 pub struct Session {
-  limits : Limits
-  mut active : Pending?
-  mut serial : Int64
-  mut closed : Bool
+  priv limits : Limits
+  priv mut active : Pending?
+  priv mut serial : Int64
+  priv mut closed : Bool
 }
 
 ///|
-pub fn Session::new(limits? : Limits = Limits::new()) -> Session {
+pub fn Session::new(limits? : Limits = Limits::new()) -> Session raise ProtocolError {
   { limits, active: None, serial: 0L, closed: false, }
 }
 
