@@ -7,7 +7,7 @@ import {mkdirSync,writeFileSync,existsSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const work=resolve(root,'../work');
+const work=resolve(root,process.env.MOONFCGI_WORK_DIR||(existsSync(resolve(root,'.local/work'))?'.local/work':'../work'));
 const win=process.platform==='win32';
 const nativeBase=resolve(root,'_build/native/debug/build/cmd/main/main');
 const exe=process.env.MOONFCGI_BIN||(existsSync(nativeBase+'.exe')?nativeBase+'.exe':nativeBase);

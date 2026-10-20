@@ -4,6 +4,8 @@
 
 ## 快速运行
 
+本机迁移后的工作目录为 `D:\GitHub\moonfcgi`。Windows 的项目专用 SDK 和联调工具可放在忽略的 `.local/work` 中：先运行 `. ./tools/Use-LocalToolchain.ps1` 选择 SDK，或运行 `./tools/Open-MoonFCGI.ps1` 打开带正确环境的独立 VS Code 窗口。其他机器仍可按下述要求使用系统 SDK。联调工作目录可通过 `MOONFCGI_WORK_DIR` 指定；默认优先 `.local/work`，否则使用 `../work`。
+
 当前代码使用 moon 0.1.20261016 / moonc v0.10.16+b1a0e846e（含 Int32 新语法），旧版 0.10.14 不能检查当前源码。已验证 Windows x64 native（Nginx 1.28.0）和 Ubuntu 24.04 native（Nginx 1.24.0），Go 参考版本固定 1.23.2。Linux 格式/check/build/test、真实 TCP/Go/Nginx 和独立消费者均已在 [GitHub CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39408894313) 通过。
 
 ```sh

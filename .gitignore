@@ -4,6 +4,7 @@ target/
 target
 .mooncakes/
 .moonagent/
+.local/
 .ci-artifacts/
 ci-artifacts/
 logs/

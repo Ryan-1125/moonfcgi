@@ -2,6 +2,15 @@
 
 This is a [MoonBit](https://docs.moonbitlang.com) project.
 
+## Local workspace and toolchain
+
+Use the directory containing this file as the repository root. This checkout has
+been relocated; do not recreate it at an older absolute path from historical
+reports. On the current machine the active checkout is `D:\GitHub\moonfcgi`.
+If `.local/work/moon-sdk` exists, dot-source `tools/Use-LocalToolchain.ps1` before
+running Moon commands in PowerShell. `.local/` contains private local SDKs,
+editor state and copied submission documents and must never be committed.
+
 You can browse and install extra skills here:
 <https://github.com/moonbitlang/skills>
 
