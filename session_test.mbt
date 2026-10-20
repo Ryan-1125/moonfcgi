@@ -31,6 +31,20 @@ test "sequential reuse is isolated and stale completion cannot affect next reque
 }
 
 ///|
+test "completion from another session cannot finish a matching local ID and token" {
+  let a = @moonfcgi.Session::new()
+  let b = @moonfcgi.Session::new()
+  let ra = ready(a, 1, body=b"a")
+  let rb = ready(b, 1, body=b"b")
+  assert_eq(ra.token, rb.token)
+  assert_true(
+    b.complete(ra, @moonfcgi.Response::new(b"wrong session")).is_empty(),
+  )
+  assert_true(!a.complete(ra, @moonfcgi.Response::new(b"a")).is_empty())
+  assert_true(!b.complete(rb, @moonfcgi.Response::new(b"b")).is_empty())
+}
+
+///|
 test "management, multiplex rejection, abort and unknown role" {
   let s = @moonfcgi.Session::new()
   let query = @moonfcgi.encode_params([

@@ -1,6 +1,7 @@
 ///|
 /// A fully buffered, bounded request; token prevents stale completion after reuse.
 pub struct Request {
+  priv owner : Pending
   id : Int
   token : Int64
   params : Array[(Bytes, Bytes)]

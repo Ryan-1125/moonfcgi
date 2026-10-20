@@ -237,7 +237,15 @@ fn Session::accept_inner(
     }
     pending.ready = true
     pending.body.reset()
-    return [Ready({ id: pending.id, token: pending.token, params, body, })]
+    return [
+      Ready({
+        owner: pending,
+        id: pending.id,
+        token: pending.token,
+        params,
+        body,
+      }),
+    ]
   }
   raise Invalid("unexpected record direction or type for active request")
 }
@@ -251,6 +259,7 @@ pub fn Session::complete(
 ) -> Array[Event] raise ProtocolError {
   guard !self.closed &&
     self.active is Some(pending) &&
+    physical_equal(request.owner, pending) &&
     pending.ready &&
     pending.token == request.token &&
     pending.id == request.id else {

@@ -67,6 +67,7 @@ pub struct Request {
   token : Int64
   params : Array[(Bytes, Bytes)]
   body : Bytes
+  // private fields
 }
 pub fn Request::param(Self, String) -> Bytes?
 pub fn Request::text_param(Self, String) -> String? raise
