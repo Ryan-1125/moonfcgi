@@ -41,6 +41,14 @@ async fn main {
         @fcgi.Response::new(Bytes::make(200000, b'x'))
       } else if path == "/api/huge" {
         @fcgi.Response::new(Bytes::make(8388608, b'x'))
+      } else if path == "/api/oversized" {
+        @fcgi.Response::new(Bytes::make(8388609, b'x'))
+      } else if path == "/api/stderr" {
+        @fcgi.Response::new(b"ok", stderr=b"\x00\xffdiagnostic")
+      } else if path == "/api/no-content" {
+        @fcgi.Response::new(b"must not reach client", status=204)
+      } else if path == "/api/not-modified" {
+        @fcgi.Response::new(b"must not reach client", status=304)
       } else {
         @fcgi.Response::new(b"Not Found", status=404)
       }

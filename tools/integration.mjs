@@ -43,6 +43,22 @@ try{
  await test('malformed version, EOF truncation, request limit and idle timeout close sockets',async()=>{for(const bytes of [Buffer.from([2,1,0,1,0,0,0,0]),Buffer.concat([begin(),rec(4,1),rec(5,1,Buffer.alloc(65535))])]){const c=await Client.open(19000);c.s.write(bytes);if(bytes[0]===1){for(let i=0;i<16;i++)c.s.write(rec(5,1,Buffer.alloc(65535)));}await sleep(150);assert(c.closed);c.close();}const c=await Client.open(19000);c.s.end(Buffer.from([1,1,0]));await sleep(100);assert(c.closed);const idle=await Client.open(19000);await sleep(1700);assert(idle.closed);idle.close();});
  await test('real TCP backpressure triggers write deadline and frees connection',async()=>{const s=await connect(19000);s.on('error',()=>{});s.pause();s.write(request('/api/huge'));await sleep(1000);const c=new Client(s);s.resume();let ended=false;while(true){const r=await c.next();if(!r)break;if(r.t===3)ended=true;}assert.equal(ended,false,'response must be interrupted by write timeout');c.close();const next=await Client.open(19000);try{next.s.write(request('/api/hello'));assert.equal((await next.response()).status,200);}finally{next.close();}});
  await test('connection capacity queues excess work and releases timed-out slots',async()=>{const idle=[];let c;try{for(let i=0;i<8;i++)idle.push(await Client.open(19000));c=await Client.open(19000);let early=false;c.s.on('data',()=>{early=true;});c.s.write(request('/api/hello'));await sleep(200);assert.equal(early,false);assert.equal((await c.response()).status,200);}finally{for(const x of idle)x.close();c?.close();}});
+ await test('wire STDOUT/STDERR termination, HEAD, and oversized-response recovery',async()=>{
+  const c=await Client.open(19000);
+  try {
+   c.s.write(request('/api/stderr'));
+   let r=await c.response();
+   assert.deepEqual(Buffer.concat(r.records.filter(x=>x.t===7).map(x=>x.b)),Buffer.from([0,255,...Buffer.from('diagnostic')]));
+   assert.equal(r.body.toString(),'ok');
+   for(const type of [6,7]) { const stream=r.records.filter(x=>x.t===type);assert.equal(stream.at(-1).b.length,0);assert.equal(stream.filter(x=>x.b.length===0).length,1); }
+   assert.equal(r.records.filter(x=>x.t===3).length,1);
+   c.s.write(request('/api/echo',Buffer.from([0,255,1]),1,true,[['REQUEST_METHOD','HEAD']]));
+   r=await c.response();assert.equal(r.body.length,0);assert.match(r.headers,/Content-Length: 3/);
+   c.s.write(request('/api/oversized'));r=await c.response();assert.equal(r.status,500);assert.equal(r.body.length,0);
+   c.s.write(request('/api/echo',Buffer.from('after output failure')));assert.equal((await c.response()).body.toString(),'after output failure');
+   for(const [path,status] of [['/api/no-content',204],['/api/not-modified',304]]){c.s.write(request(path));r=await c.response();assert.equal(r.status,status);assert.equal(r.body.length,0);assert(!/Content-Length:/i.test(r.headers));}
+  } finally { c.close(); }
+ });
  if(process.env.SKIP_GO!=='1'){
   start(go,['127.0.0.1:19001']);await ready(19001);
   await test('Go 1.23.2 net/http/fcgi common-scenario differential interoperability',async()=>{for(const [path,body] of [['/api/echo',binary],['/api/hello',Buffer.alloc(0)],['/api/cookies',Buffer.alloc(0)],['/api/large',Buffer.alloc(0)],['/missing',Buffer.alloc(0)]]){const results=[];for(const port of [19000,19001]){const c=await Client.open(port);try{c.s.write(request(path,body));results.push(await c.response());}finally{c.close();}}assert.equal(results[0].status,results[1].status);if(path==='/api/hello')assert.deepEqual(JSON.parse(results[0].body),JSON.parse(results[1].body));else assert.deepEqual(results[0].body,results[1].body);}});
@@ -55,6 +71,7 @@ try{
   writeFileSync(prefix+'nginx.conf',conf);const check=spawnSync(nginx,['-p',prefix,'-c','nginx.conf','-t'],{windowsHide:true,encoding:'utf8'});assert.equal(check.status,0,check.stderr);start(nginx,['-p',prefix,'-c','nginx.conf']);nginxStarted=true;await ready(18080);
   await test('real Nginx GET JSON and upstream persistent connection reuse',async()=>{const before=accepted;for(let i=0;i<2;i++){const r=await httpRequest('/api/hello?a=1');assert.equal(r.status,200);assert.deepEqual(JSON.parse(r.body),{message:'hello',query:'a=1'});}assert.equal(accepted-before,1);console.log('  two HTTP requests used exactly one real FastCGI TCP connection');});
   await test('real Nginx binary POST, duplicate headers, 404 and handler 500',async()=>{assert.deepEqual((await httpRequest('/api/echo',binary)).body,binary);assert.deepEqual((await httpRequest('/api/cookies')).headers['set-cookie'],['a=1','b=2']);assert.equal((await httpRequest('/missing')).status,404);assert.equal((await httpRequest('/api/error')).status,500);});
+  await test('real Nginx suppresses 204/304 bodies and keeps connection after response limit failure',async()=>{for(const [path,status] of [['/api/no-content',204],['/api/not-modified',304],['/api/oversized',500]]){const r=await httpRequest(path);assert.equal(r.status,status);assert.equal(r.body.length,0);}assert.equal((await httpRequest('/api/hello')).status,200);});
  }
  console.log(`TOTAL ${passed} integration groups passed`);
 }finally{
