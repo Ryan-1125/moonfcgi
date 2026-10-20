@@ -1,20 +1,20 @@
 ///|
 /// Configuration is immutable after validation.
 pub struct Limits {
-  body_bytes : Int
-  params_bytes : Int
-  param_count : Int
-  response_bytes : Int
-  connections : Int
+  body_bytes : Int32
+  params_bytes : Int32
+  param_count : Int32
+  response_bytes : Int32
+  connections : Int32
 }
 
 ///|
 pub fn Limits::new(
-  body_bytes? : Int = 8388608,
-  params_bytes? : Int = 262144,
-  param_count? : Int = 1024,
-  response_bytes? : Int = 8388608,
-  connections? : Int = 64,
+  body_bytes~ : Int32 = 8388608,
+  params_bytes~ : Int32 = 262144,
+  param_count~ : Int32 = 1024,
+  response_bytes~ : Int32 = 8388608,
+  connections~ : Int32 = 64,
 ) -> Limits raise ProtocolError {
   if body_bytes < 0 ||
     params_bytes < 0 ||
@@ -28,7 +28,7 @@ pub fn Limits::new(
 
 ///|
 priv struct Pending {
-  id : Int
+  id : Int32
   token : Int64
   keep : Bool
   params_decoder : ParamsDecoder

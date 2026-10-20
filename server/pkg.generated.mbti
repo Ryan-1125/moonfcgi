@@ -16,11 +16,11 @@ pub async fn serve_connection(@socket.Tcp, async (@moonfcgi.Request) -> @moonfcg
 // Types and methods
 pub struct Config {
   limits : @moonfcgi.Limits
-  cycle_timeout_ms : Int
-  write_timeout_ms : Int
-  handler_timeout_ms : Int
+  cycle_timeout_ms : Int32
+  write_timeout_ms : Int32
+  handler_timeout_ms : Int32
 }
-pub fn Config::new(limits? : @moonfcgi.Limits, cycle_timeout_ms? : Int, write_timeout_ms? : Int, handler_timeout_ms? : Int) -> Self raise
+pub fn Config::new(limits? : @moonfcgi.Limits, cycle_timeout_ms? : Int32, write_timeout_ms? : Int32, handler_timeout_ms? : Int32) -> Self raise
 
 // Type aliases
 pub type Handler = async (@moonfcgi.Request) -> @moonfcgi.Response

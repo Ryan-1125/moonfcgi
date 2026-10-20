@@ -11,8 +11,8 @@ pub extend ProtocolError with @debug.Debug::{to_repr}
 ///|
 /// A protocol record; content is immutable and independent of decoder storage.
 pub(all) struct Record {
-  kind : Int
-  id : Int
+  kind : Int32
+  id : Int32
   content : Bytes
 } derive(Eq, Debug)
 
@@ -26,8 +26,8 @@ pub extend Record with @debug.Debug::{to_repr}
 /// Incremental decoder. A failure poisons the decoder; create a new one.
 pub struct Decoder {
   priv storage : FixedArray[Byte]
-  priv mut used : Int
-  priv mut expected : Int
+  priv mut used : Int32
+  priv mut expected : Int32
   priv mut failed : Bool
 }
 
@@ -128,11 +128,15 @@ pub fn encode_record(record : Record) -> Bytes raise ProtocolError {
 
 ///|
 /// Split bytes into stream records, followed by exactly one empty terminator.
-pub fn stream_records(kind : Int, id : Int, content : Bytes) -> Array[Record] {
+pub fn stream_records(
+  kind : Int32,
+  id : Int32,
+  content : Bytes,
+) -> Array[Record] {
   let out = []
   let mut offset = 0
   while offset < content.length() {
-    let n = Int::min(65535, content.length() - offset)
+    let n = Int32::min(65535, content.length() - offset)
     out.push({ kind, id, content: content[offset:offset + n].to_owned(), })
     offset += n
   }
@@ -142,9 +146,9 @@ pub fn stream_records(kind : Int, id : Int, content : Bytes) -> Array[Record] {
 
 ///|
 pub fn end_record(
-  id : Int,
-  app_status? : UInt = 0U,
-  protocol_status? : Int = 0,
+  id : Int32,
+  app_status~ : UInt32 = 0U,
+  protocol_status~ : Int32 = 0,
 ) -> Record {
   let out = @buf.Buffer()
   out.write_uint_be(app_status)

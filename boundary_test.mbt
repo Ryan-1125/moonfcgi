@@ -18,7 +18,7 @@ test "coalesced records, one-byte fragments, maximum padding and snapshot owners
     let records = []
     let mut pos = 0
     while pos < wire.length() {
-      let end = Int::min(pos + width, wire.length())
+      let end = Int32::min(pos + width, wire.length())
       for r in d.feed(wire[pos:end].to_owned()) {
         records.push(r)
       }

@@ -1,8 +1,8 @@
 ///|
 fn ready(
   s : @moonfcgi.Session,
-  id : Int,
-  body? : Bytes = b"",
+  id : Int32,
+  body~ : Bytes = b"",
 ) -> @moonfcgi.Request raise {
   ignore(
     s.accept({ kind: 1, id, content: b"\x00\x01\x01\x00\x00\x00\x00\x00", }),

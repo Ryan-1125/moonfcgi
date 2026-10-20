@@ -4,6 +4,7 @@ target/
 target
 .mooncakes/
 .moonagent/
+.ci-artifacts/
 logs/
 temp/
 client_body_temp/

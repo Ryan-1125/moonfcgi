@@ -6,17 +6,17 @@ pub type Handler = async (@fcgi.Request) -> @fcgi.Response
 /// Immutable configuration. Milliseconds; cycle deadline includes idle/request input.
 pub struct Config {
   limits : @fcgi.Limits
-  cycle_timeout_ms : Int
-  write_timeout_ms : Int
-  handler_timeout_ms : Int
+  cycle_timeout_ms : Int32
+  write_timeout_ms : Int32
+  handler_timeout_ms : Int32
 }
 
 ///|
 pub fn Config::new(
   limits? : @fcgi.Limits,
-  cycle_timeout_ms? : Int = 30000,
-  write_timeout_ms? : Int = 10000,
-  handler_timeout_ms? : Int = 10000,
+  cycle_timeout_ms~ : Int32 = 30000,
+  write_timeout_ms~ : Int32 = 10000,
+  handler_timeout_ms~ : Int32 = 10000,
 ) -> Config raise {
   let limits = match limits {
     Some(value) => value

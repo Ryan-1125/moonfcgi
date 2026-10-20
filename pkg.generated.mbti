@@ -10,9 +10,9 @@ pub fn encode_params(Array[(Bytes, Bytes)]) -> Bytes
 
 pub fn encode_record(Record) -> Bytes raise ProtocolError
 
-pub fn end_record(Int, app_status? : UInt, protocol_status? : Int) -> Record
+pub fn end_record(Int32, app_status? : UInt32, protocol_status? : Int32) -> Record
 
-pub fn stream_records(Int, Int, Bytes) -> Array[Record]
+pub fn stream_records(Int32, Int32, Bytes) -> Array[Record]
 
 // Errors
 pub suberror ProtocolError {
@@ -38,24 +38,24 @@ pub(all) enum Event {
 }
 
 pub struct Limits {
-  body_bytes : Int
-  params_bytes : Int
-  param_count : Int
-  response_bytes : Int
-  connections : Int
+  body_bytes : Int32
+  params_bytes : Int32
+  param_count : Int32
+  response_bytes : Int32
+  connections : Int32
 }
-pub fn Limits::new(body_bytes? : Int, params_bytes? : Int, param_count? : Int, response_bytes? : Int, connections? : Int) -> Self raise ProtocolError
+pub fn Limits::new(body_bytes? : Int32, params_bytes? : Int32, param_count? : Int32, response_bytes? : Int32, connections? : Int32) -> Self raise ProtocolError
 
 pub struct ParamsDecoder {
   // private fields
 }
 pub fn ParamsDecoder::feed(Self, Bytes) -> Unit raise ProtocolError
 pub fn ParamsDecoder::finish(Self) -> Array[(Bytes, Bytes)] raise ProtocolError
-pub fn ParamsDecoder::new(limit? : Int, max_pairs? : Int) -> Self raise ProtocolError
+pub fn ParamsDecoder::new(limit? : Int32, max_pairs? : Int32) -> Self raise ProtocolError
 
 pub(all) struct Record {
-  kind : Int
-  id : Int
+  kind : Int32
+  id : Int32
   content : Bytes
 } derive(Eq, @debug.Debug)
 pub fn Record::equal(Self, Self) -> Bool
@@ -63,7 +63,7 @@ pub fn Record::not_equal(Self, Self) -> Bool
 pub fn Record::to_repr(Self) -> @debug.Repr
 
 pub struct Request {
-  id : Int
+  id : Int32
   token : Int64
   params : Array[(Bytes, Bytes)]
   body : Bytes
@@ -73,13 +73,13 @@ pub fn Request::param(Self, String) -> Bytes?
 pub fn Request::text_param(Self, String) -> String? raise
 
 pub struct Response {
-  status : Int
+  status : Int32
   headers : Array[(String, String)]
   body : Bytes
   stderr : Bytes
 }
 pub fn Response::cgi_bytes(Self, head? : Bool) -> Bytes raise ProtocolError
-pub fn Response::new(Bytes, status? : Int, headers? : Array[(String, String)], stderr? : Bytes) -> Self raise ProtocolError
+pub fn Response::new(Bytes, status? : Int32, headers? : Array[(String, String)], stderr? : Bytes) -> Self raise ProtocolError
 
 pub struct Session {
   // private fields

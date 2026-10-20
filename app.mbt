@@ -2,7 +2,7 @@
 /// A fully buffered, bounded request; token prevents stale completion after reuse.
 pub struct Request {
   priv owner : Pending
-  id : Int
+  id : Int32
   token : Int64
   params : Array[(Bytes, Bytes)]
   body : Bytes
@@ -29,7 +29,7 @@ pub fn Request::text_param(self : Request, name : String) -> String? raise {
 ///|
 /// Response headers are ordered; duplicate Set-Cookie headers are preserved.
 pub struct Response {
-  status : Int
+  status : Int32
   headers : Array[(String, String)]
   body : Bytes
   stderr : Bytes
@@ -39,9 +39,9 @@ pub struct Response {
 /// Construct a response. Validation also runs at serialization to guard mutation.
 pub fn Response::new(
   body : Bytes,
-  status? : Int = 200,
-  headers? : Array[(String, String)] = [],
-  stderr? : Bytes = b"",
+  status~ : Int32 = 200,
+  headers~ : Array[(String, String)] = [],
+  stderr~ : Bytes = b"",
 ) -> Response raise ProtocolError {
   let response = { status, headers: headers.copy(), body, stderr, }
   validate_response(response)
@@ -101,7 +101,7 @@ fn validate_response(response : Response) -> Unit raise ProtocolError {
 /// Encode CGI headers, followed by the binary body (not an HTTP status line).
 pub fn Response::cgi_bytes(
   self : Response,
-  head? : Bool = false,
+  head~ : Bool = false,
 ) -> Bytes raise ProtocolError {
   validate_response(self)
   let out = @buf.Buffer()

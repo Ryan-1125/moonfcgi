@@ -47,10 +47,15 @@ jobs:
           GO_REFERENCE_BIN="$PWD/../work/go-ref" NGINX_BIN="$(command -v nginx)" node tools/integration.mjs
       - name: Independent package consumer
         run: node tools/consumer.mjs
+      - name: Collect available diagnostic logs
+        if: always()
+        run: |
+          mkdir -p .ci-artifacts
+          cp ../work/*.log .ci-artifacts/ 2>/dev/null || true
+          cp -R ../work/nginx-test/logs .ci-artifacts/nginx 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: interoperability-logs
-          path: |
-            ../work/*.log
-            ../work/nginx-test/logs/
+          path: .ci-artifacts/
+          if-no-files-found: ignore

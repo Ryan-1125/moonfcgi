@@ -35,10 +35,10 @@ git diff --check
 ```
 
 - 格式、check、build：成功，无 Moon 编译警告。
-- 核心测试：`Total tests: 13, passed: 13, failed: 0.` 固定人工字节向量和所有切点/多种片宽测试，不只依赖自产 encoder/decoder 往返。
-- 外部网络驱动：`TOTAL 10 integration groups passed`，覆盖下表。
+- 核心测试：`Total tests: 15, passed: 15, failed: 0.` 固定人工字节向量和所有切点/多种片宽测试，不只依赖自产 encoder/decoder 往返。
+- 外部网络驱动：`TOTAL 12 integration groups passed`，覆盖下表。
 - 独立消费者：实际 `moon package` ZIP 解到临时工作区；独立模块依赖该解包模块，check/build/test 成功，`Total tests: 1, passed: 1, failed: 0.` 根协议 API 运行且 `/server` 的 Handler/Config 接口被独立编译引用；没有直接读取开发目录作为依赖。
-- `moon package` 成功；repository 为空会提示警告，因为尚未创建获授权远程仓库。此警告不隐藏、不填入虚构链接。
+- `moon package` 成功；现已填写真实公开 repository；早期打包时因未建库而产生的警告属于此前记录。
 - 手工示例配置也执行了真实 `nginx -p <项目路径>/ -c examples/nginx.conf -t`，创建 logs/temp 后语法和路径检查成功。
 - 临时消费者目录保留供复查，最近一次：`%TEMP%/moonfcgi-consumer-pBacfQ`。消费者脚本每次生成新的独立目录。
 
@@ -74,8 +74,13 @@ Nginx 会将较大 POST 缓冲到临时文件，error.log 的这一 warning 是 
 
 ## 未完成的外部步骤及适用限制
 
-- `.github/workflows/ci.yml` 已配置 Linux 格式/check/build/test、真实 TCP/Go/Nginx、独立消费者，但未创建远程仓库、未推送，**未声称 CI 运行通过或 Linux 已测试**。
+- `.github/workflows/ci.yml` 已配置 Linux 格式/check/build/test、真实 TCP/Go/Nginx、独立消费者，已推送到公开仓库，远程结果待本轮 GitHub Actions 实际执行确认。
 - 官方旧版 Linux 工具链 URL 现场返回 403，CI 因此采用官方 latest 安装器并记录版本；Go 固定 1.23.2，Nginx 使用 Ubuntu 仓库版本。CI 的 Moon/Nginx 版本与本地可能不同，兼容性必须以 CI 实际结果判断。
 - 未发布 Mooncakes。安装包验证是本地 ZIP + 独立 workspace 消费，**不是**注册表下载验证。发布后仍需全新目录执行 `moon add Ryan-1125/moonfcgi@0.1.0`，移除本地 workspace 替代，再运行消费者。
 - 未做性能基准、长期压力测试、Windows 以外平台验证或生产级安全审计。无性能数字或全平台支持声明。
-- namespace 仍待用户核实；repository 字段待真实远程地址填写。创建仓库、push、publish、报名和群内发送均需另行授权。
+- 公开仓库已按用户授权建立并推送：https://github.com/Ryan-1125/moonfcgi 。Mooncakes namespace 仍待核实，未发布或报名。
+
+## 建库前新增回归（2026-10-20）
+
+复现并修复了跨会话同 ID/序号误完成；CGI Status 增加固定安全 reason phrase。新增真实 TCP 的 STDOUT/STDERR 空终止、HEAD、超限响应后恢复及 Nginx 204/304/超限回退检查；本轮 15 项核心测试和 12 组联调通过。公开仓库保留连续真实开发历史，首次推送包含 10 个提交；以后正常维护可能超过 10 个。
+

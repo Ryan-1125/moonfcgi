@@ -2,7 +2,7 @@
 /// Byte pairs deliberately preserve duplicate keys and non-UTF8 values.
 pub fn encode_params(pairs : Array[(Bytes, Bytes)]) -> Bytes {
   let out = @buf.Buffer()
-  fn length(n : Int, out : @buf.Buffer) {
+  fn length(n : Int32, out : @buf.Buffer) {
     if n < 128 {
       out.write_byte(n.to_byte())
     } else {
@@ -22,24 +22,24 @@ pub fn encode_params(pairs : Array[(Bytes, Bytes)]) -> Bytes {
 ///|
 /// Incremental byte-state decoder. No allocation uses a declared remote length.
 pub struct ParamsDecoder {
-  priv limit : Int
-  priv max_pairs : Int
+  priv limit : Int32
+  priv max_pairs : Int32
   priv pairs : Array[(Bytes, Bytes)]
   priv name : @buf.Buffer
   priv value : @buf.Buffer
-  priv mut total : Int
-  priv mut stage : Int // 0 name length, 1 value length, 2 name, 3 value
-  priv mut prefix_left : Int
-  priv mut prefix : Int
-  priv mut name_length : Int
-  priv mut value_length : Int
+  priv mut total : Int32
+  priv mut stage : Int32 // 0 name length, 1 value length, 2 name, 3 value
+  priv mut prefix_left : Int32
+  priv mut prefix : Int32
+  priv mut name_length : Int32
+  priv mut value_length : Int32
   priv mut ended : Bool
 }
 
 ///|
 pub fn ParamsDecoder::new(
-  limit? : Int = 262144,
-  max_pairs? : Int = 1024,
+  limit~ : Int32 = 262144,
+  max_pairs~ : Int32 = 1024,
 ) -> ParamsDecoder raise ProtocolError {
   if limit < 0 || max_pairs < 0 {
     raise Invalid("negative params limit")
@@ -74,7 +74,7 @@ fn ParamsDecoder::emit(self : ParamsDecoder) -> Unit raise ProtocolError {
 ///|
 fn ParamsDecoder::length_ready(
   self : ParamsDecoder,
-  n : Int,
+  n : Int32,
 ) -> Unit raise ProtocolError {
   if n > self.limit {
     raise Limit("declared parameter length")
