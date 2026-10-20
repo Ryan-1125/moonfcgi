@@ -36,6 +36,25 @@ let proxy;let nginxStarted=false;const prefix=resolve(work,'nginx-test').replace
 try{
  start(exe,['127.0.0.1:19000','test']); await ready(19000);
  const binary=Buffer.alloc(180001);for(let i=0;i<binary.length;i++)binary[i]=i%256;
+ await test('invalid or excessive declared length closes before STDIN completion',async()=>{
+  const cases=[
+   [[['CONTENT_LENGTH','1048577']],null],
+   [[['CONTENT_LENGTH','oops']],null],
+   [[['CONTENT_LENGTH','0'],['CONTENT_LENGTH','1']],null],
+   [[['CONTENT_LENGTH','2147483648']],null],
+   [[['CONTENT_LENGTH','1']],Buffer.from([0,255])],
+  ];
+  for(const [pairs,stdin] of cases){
+   const c=await Client.open(19000);
+   try {
+    const closed=new Promise((res,rej)=>{const timer=setTimeout(()=>rej(Error('invalid length was not rejected before cycle timeout')),700);c.s.once('close',()=>{clearTimeout(timer);res();});});
+    c.s.write(Buffer.concat([begin(),rec(4,1,params(pairs)),rec(4,1),...(stdin?[rec(5,1,stdin)]:[])]));
+    await closed;assert.equal(c.queue.length,0);
+   } finally { c.close(); }
+  }
+  const c=await Client.open(19000);
+  try {c.s.write(request('/api/echo',Buffer.from('healthy')));assert.equal((await c.response()).body.toString(),'healthy');}finally{c.close();}
+ });
  await test('TCP fragmented PARAMS, padding, binary body and same-ID sequential reuse',async()=>{const c=await Client.open(19000);try{c.s.write(request('/api/echo',binary));assert.deepEqual((await c.response()).body,binary);c.s.write(request('/missing'));assert.equal((await c.response()).status,404);c.s.write(request('/api/cookies',Buffer.alloc(0),1,false));assert.equal((await c.response()).headers.match(/Set-Cookie:/g).length,2);await sleep(50);assert(c.closed);}finally{c.close();}});
  await test('management capabilities, unknown management type and unsupported role',async()=>{const c=await Client.open(19000);try{c.s.write(rec(9,0,params([['FCGI_MPXS_CONNS',''],['FCGI_MAX_REQS',''],['UNKNOWN','']])));const v=await c.next();assert.equal(v.t,10);assert(v.b.includes(Buffer.from('FCGI_MPXS_CONNS0')));assert(!v.b.includes(Buffer.from('UNKNOWN')));c.s.write(rec(99,0));assert.deepEqual((await c.next()).b,Buffer.from([99,0,0,0,0,0,0,0]));c.s.write(begin(3,true,2));assert.equal((await c.next()).b[4],3);}finally{c.close();}});
  await test('multiplex rejection, ABORT cancellation and unpolluted ID reuse',async()=>{const c=await Client.open(19000);try{c.s.write(request('/api/slow'));c.s.write(begin(2));let r=await c.next();assert.equal(r.id,2);assert.equal(r.b[4],1);c.s.write(rec(2,1));r=await c.next();assert.equal(r.t,3);c.s.write(request('/api/echo',Buffer.from([0,255,1])));assert.deepEqual((await c.response()).body,Buffer.from([0,255,1]));await sleep(650);c.s.write(request('/api/hello'));assert.equal((await c.response()).status,200);}finally{c.close();}});

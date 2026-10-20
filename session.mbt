@@ -34,7 +34,38 @@ priv struct Pending {
   params_decoder : ParamsDecoder
   body : @buf.Buffer
   mut params : Array[(Bytes, Bytes)]?
+  mut expected_length : Int32?
   mut ready : Bool
+}
+
+///|
+fn declared_length(
+  params : Array[(Bytes, Bytes)],
+  limit : Int32,
+) -> Int32? raise ProtocolError {
+  let mut expected = None
+  for (name, value) in params {
+    // Nginx may send an empty CONTENT_LENGTH when no length is supplied.
+    if name != b"CONTENT_LENGTH" || value.is_empty() {
+      continue
+    }
+    let mut size = 0
+    for byte in value {
+      let digit = byte.to_int() - 48
+      if digit < 0 || digit > 9 {
+        raise Invalid("CONTENT_LENGTH is not decimal")
+      }
+      if digit > limit || size > (limit - digit) / 10 {
+        raise Limit("CONTENT_LENGTH")
+      }
+      size = size * 10 + digit
+    }
+    if expected is Some(previous) && previous != size {
+      raise Invalid("conflicting CONTENT_LENGTH values")
+    }
+    expected = Some(size)
+  }
+  expected
 }
 
 ///|
@@ -168,6 +199,7 @@ fn Session::accept_inner(
       ),
       body: @buf.Buffer(),
       params: None,
+      expected_length: None,
       ready: false,
     })
     return []
@@ -192,7 +224,9 @@ fn Session::accept_inner(
       raise Invalid("PARAMS after stream termination")
     }
     if data.is_empty() {
-      pending.params = Some(pending.params_decoder.finish())
+      let params = pending.params_decoder.finish()
+      pending.expected_length = declared_length(params, self.limits.body_bytes)
+      pending.params = Some(params)
     } else {
       pending.params_decoder.feed(data)
     }
@@ -208,32 +242,17 @@ fn Session::accept_inner(
     if data.length() > self.limits.body_bytes - pending.body.length() {
       raise Limit("request body")
     }
+    if pending.expected_length is Some(expected) &&
+      data.length() > expected - pending.body.length() {
+      raise Invalid("STDIN exceeds CONTENT_LENGTH")
+    }
     if !data.is_empty() {
       pending.body.write_bytes(data)
       return []
     }
     let body = pending.body.to_bytes()
-    // CGI CONTENT_LENGTH, if present, must agree with the supplied byte stream.
-    for pair in params {
-      if pair.0 == b"CONTENT_LENGTH" && !pair.1.is_empty() {
-        let mut size = 0
-        for b in pair.1 {
-          let digit = b.to_int() - 48
-          if digit < 0 || digit > 9 {
-            raise Invalid("CONTENT_LENGTH is not decimal")
-          }
-          if size > (self.limits.body_bytes - digit) / 10 {
-            raise Limit("CONTENT_LENGTH")
-          }
-          size = size * 10 + digit
-          if size > self.limits.body_bytes {
-            raise Limit("CONTENT_LENGTH")
-          }
-        }
-        if size != body.length() {
-          raise Invalid("CONTENT_LENGTH mismatch")
-        }
-      }
+    if pending.expected_length is Some(expected) && expected != body.length() {
+      raise Invalid("CONTENT_LENGTH mismatch")
     }
     pending.ready = true
     pending.body.reset()

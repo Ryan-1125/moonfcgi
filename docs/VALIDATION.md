@@ -1,5 +1,7 @@
 # 本地验收记录
 
+最新维护验证：18 项核心测试、13 组真实网络联调、1 项独立消费者测试通过。此前各节的版本和数量保留为阶段记录；本轮细节见文末。
+
 日期：2026-10-20。实际运行平台 Windows x64，MSVC native 后端；不是模拟运行。
 
 ## 版本
@@ -92,4 +94,14 @@ Nginx 会将较大 POST 缓冲到临时文件，error.log 的这一 warning 是 
 此前两轮失败记录保留在 Actions：第一轮新版格式差异及 artifact 路径不合法；第二轮 fresh runner 缺少 registry index。已分别修复，没有删除失败记录或跳过失败测试。
 
 Windows 上同版本 SDK 安装在工作区 ../work/moon-sdk，未替换用户系统 SDK；新版代码已使用 Int32，旧全局 0.10.14 不再适用。当前目录的外部 outputs/Open-MoonFCGI.ps1 会用匹配 SDK 启动独立 VS Code 窗口。其他机器请安装当前官方 SDK，先执行 moon update。上方旧 SDK 表格为首次验收的历史记录。
+
+## 提前拒绝无效正文声明与编辑器启动改进（2026-10-20）
+
+先新增回归测试，确认旧实现会把声明长度校验推迟到 STDIN 结束；3 个新增测试在修复前失败，修复后全部通过。现在 PARAMS 结束时校验长度语法、冲突重复值和上限；正文逐 record 检查长度，越界立即拒绝，缺少字节仍在流终止时拒绝。覆盖空/零长度、相同数值重复值、非 UTF-8 长度和 Int32 边界，公开 API 签名没有变化。
+
+真实 TCP 新增一组：仅发送 BEGIN/PARAMS（或发送超出声明长度的 STDIN record），不发送 STDIN 结束记录，断言服务器在 700 ms 内关闭连接，早于测试配置的 1500 ms 周期超时；之后独立连接正常响应。原有 Go/Nginx、顺序复用、ABORT、并发和写超时场景继续通过。
+
+在 `D:\GitHub\moonfcgi`，先 `. ./tools/Use-LocalToolchain.ps1`，再运行 `moon info`、`moon fmt`、`moon check --target native`、`moon build --target native`、`moon test --target native`、`node tools/integration.mjs`、`node tools/consumer.mjs`。结果为 18 / 13 / 1 全部通过。
+
+`tools/Open-MoonFCGI.ps1` 已改为默认复用普通窗口，只有显式 `-Isolated` 才启用独立配置。PowerShell Parser 语法检查通过；本轮没有再次启动编辑器窗口，也未声称交互界面经过自动化测试。
 

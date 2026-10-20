@@ -4,9 +4,9 @@
 
 ## 快速运行
 
-本机迁移后的工作目录为 `D:\GitHub\moonfcgi`。Windows 的项目专用 SDK 和联调工具可放在忽略的 `.local/work` 中：先运行 `. ./tools/Use-LocalToolchain.ps1` 选择 SDK，或运行 `./tools/Open-MoonFCGI.ps1` 打开带正确环境的独立 VS Code 窗口。其他机器仍可按下述要求使用系统 SDK。联调工作目录可通过 `MOONFCGI_WORK_DIR` 指定；默认优先 `.local/work`，否则使用 `../work`。
+本机迁移后的工作目录为 `D:\GitHub\moonfcgi`。Windows 的项目专用 SDK 和联调工具可放在忽略的 `.local/work` 中。在 PowerShell 先运行 `. ./tools/Use-LocalToolchain.ps1` 选择 SDK。`./tools/Open-MoonFCGI.ps1` 默认复用普通 VS Code 窗口，保留原有语言和个人配置；新终端仍应执行上述 SDK 脚本。已运行的编辑器语言服务可能沿用旧 SDK；只有明确需要独立 SDK 环境时才运行 `./tools/Open-MoonFCGI.ps1 -Isolated`，该选项使用独立配置，可能不沿用中文显示语言。其他机器可使用匹配的系统 SDK。联调工作目录可通过 `MOONFCGI_WORK_DIR` 指定；默认优先 `.local/work`，否则使用 `../work`。
 
-当前代码使用 moon 0.1.20261016 / moonc v0.10.16+b1a0e846e（含 Int32 新语法），旧版 0.10.14 不能检查当前源码。已验证 Windows x64 native（Nginx 1.28.0）和 Ubuntu 24.04 native（Nginx 1.24.0），Go 参考版本固定 1.23.2。Linux 格式/check/build/test、真实 TCP/Go/Nginx 和独立消费者均已在 [GitHub CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39408894313) 通过。
+当前代码使用 moon 0.1.20261016 / moonc v0.10.16+b1a0e846e（含 Int32 新语法），旧版 0.10.14 不能检查当前源码。已验证 Windows x64 native（Nginx 1.28.0）和 Ubuntu 24.04 native（Nginx 1.24.0），Go 参考版本固定 1.23.2。Linux 格式/check/build/test、真实 TCP/Go/Nginx 和独立消费者均已在 [GitHub CI](https://github.com/Ryan-1125/moonfcgi/actions/workflows/ci.yml) 通过。
 
 ```sh
 moon check --target native
@@ -67,6 +67,8 @@ async fn main {
 | `server.serve_connection` | 接管 socket，所有退出路径负责关闭；不可再交给自动关闭 socket 的回调包装器 |
 
 ## 支持边界与资源
+
+CONTENT_LENGTH 在 PARAMS 终止时校验：非法十进制、超过正文上限、相互冲突的重复值立即关闭连接，无需等到 STDIN 结束。正文逐 record 检查声明长度，少于声明值则在流终止时拒绝；相同数值的重复长度允许，空值按未提供长度处理。
 
 支持 Responder、GET_VALUES、UNKNOWN_TYPE 管理回复、ABORT_REQUEST、KEEP_CONN、顺序连接复用及已完成请求 ID 复用。`FCGI_MPXS_CONNS=0`；同连接第二个并发 BEGIN 收到 `FCGI_CANT_MPX_CONN`，不影响原请求。非 Responder 收到 `FCGI_UNKNOWN_ROLE`。管理请求 ID 必须为 0，应用请求 ID 为 1..65535；无活动匹配的记录忽略，活动请求内非法序列关闭连接。重复 BEGIN 同 ID 视为协议错误。未知管理类型返回 UNKNOWN_TYPE，活动请求中未知应用类型关闭连接。
 
