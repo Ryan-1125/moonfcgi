@@ -1,0 +1,7 @@
+import {
+  "Ryan-1125/moonfcgi" @fcgi,
+  "moonbitlang/async",
+  "moonbitlang/async/socket",
+}
+
+supported_targets = "+native"

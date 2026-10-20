@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Ryan-1125/moonfcgi/server"
+
+import {
+  "Ryan-1125/moonfcgi",
+  "moonbitlang/async/socket",
+}
+
+// Values
+pub async fn serve(String, async (@moonfcgi.Request) -> @moonfcgi.Response, config? : Config) -> Unit
+
+pub async fn serve_connection(@socket.Tcp, async (@moonfcgi.Request) -> @moonfcgi.Response, config? : Config) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct Config {
+  limits : @moonfcgi.Limits
+  cycle_timeout_ms : Int
+  write_timeout_ms : Int
+  handler_timeout_ms : Int
+}
+pub fn Config::new(limits? : @moonfcgi.Limits, cycle_timeout_ms? : Int, write_timeout_ms? : Int, handler_timeout_ms? : Int) -> Self raise
+
+// Type aliases
+pub type Handler = async (@moonfcgi.Request) -> @moonfcgi.Response
+
+// Traits
