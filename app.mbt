@@ -52,8 +52,21 @@ fn validate_response(response : Response) -> Unit raise ProtocolError {
   if response.status < 200 || response.status > 599 {
     raise Invalid("response status must be 200..599")
   }
+  if response.headers.length() > 128 {
+    raise Limit("response header count")
+  }
+  let mut header_bytes = 0
   for header in response.headers {
     let (name, value) = header
+    if name.length() > 1024 || value.length() > 16384 {
+      raise Limit("response header size")
+    }
+    header_bytes += @utf8.encode(name).length() +
+      @utf8.encode(value).length() +
+      4
+    if header_bytes > 32768 {
+      raise Limit("response headers exceed 32 KiB")
+    }
     if name.is_empty() {
       raise Invalid("empty response header")
     }

@@ -20,12 +20,20 @@ pub fn encode_params(pairs : Array[(Bytes, Bytes)]) -> Bytes {
 }
 
 ///|
-/// Bounded accumulation across records. Decode only when the PARAMS stream ends.
+/// Incremental byte-state decoder. No allocation uses a declared remote length.
 pub struct ParamsDecoder {
-  buffer : @buf.Buffer
-  limit : Int
-  max_pairs : Int
-  mut ended : Bool
+  priv limit : Int
+  priv max_pairs : Int
+  priv pairs : Array[(Bytes, Bytes)]
+  priv name : @buf.Buffer
+  priv value : @buf.Buffer
+  priv mut total : Int
+  priv mut stage : Int // 0 name length, 1 value length, 2 name, 3 value
+  priv mut prefix_left : Int
+  priv mut prefix : Int
+  priv mut name_length : Int
+  priv mut value_length : Int
+  priv mut ended : Bool
 }
 
 ///|
@@ -36,73 +44,114 @@ pub fn ParamsDecoder::new(
   if limit < 0 || max_pairs < 0 {
     raise Invalid("negative params limit")
   }
-  { buffer: @buf.Buffer(), limit, max_pairs, ended: false, }
+  {
+    limit,
+    max_pairs,
+    pairs: [],
+    name: @buf.Buffer(),
+    value: @buf.Buffer(),
+    total: 0,
+    stage: 0,
+    prefix_left: 0,
+    prefix: 0,
+    name_length: 0,
+    value_length: 0,
+    ended: false,
+  }
 }
 
 ///|
+fn ParamsDecoder::emit(self : ParamsDecoder) -> Unit raise ProtocolError {
+  if self.pairs.length() >= self.max_pairs {
+    raise Limit("parameter count")
+  }
+  self.pairs.push((self.name.to_bytes(), self.value.to_bytes()))
+  self.name.reset()
+  self.value.reset()
+  self.stage = 0
+}
+
+///|
+fn ParamsDecoder::length_ready(
+  self : ParamsDecoder,
+  n : Int,
+) -> Unit raise ProtocolError {
+  if n > self.limit {
+    raise Limit("declared parameter length")
+  }
+  if self.stage == 0 {
+    self.name_length = n
+    self.stage = 1
+  } else {
+    self.value_length = n
+    if n > self.limit - self.name_length {
+      raise Limit("declared parameter pair length")
+    }
+    self.stage = if self.name_length == 0 { 3 } else { 2 }
+    if self.name_length == 0 && n == 0 {
+      self.emit()
+    }
+  }
+}
+
+///|
+/// Accept any boundary, including inside the four-byte length prefix.
 pub fn ParamsDecoder::feed(
   self : ParamsDecoder,
   data : Bytes,
 ) -> Unit raise ProtocolError {
   if self.ended {
-    raise Invalid("PARAMS already ended")
+    raise Invalid("PARAMS already ended or failed")
   }
-  if data.length() > self.limit - self.buffer.length() {
+  errdefer {
     self.ended = true
+  }
+  if data.length() > self.limit - self.total {
     raise Limit("PARAMS bytes")
   }
-  self.buffer.write_bytes(data)
+  self.total += data.length()
+  for byte in data {
+    if self.stage <= 1 {
+      if self.prefix_left > 0 {
+        self.prefix = self.prefix * 256 + byte.to_int()
+        self.prefix_left -= 1
+        if self.prefix_left == 0 {
+          self.length_ready(self.prefix)
+        }
+      } else if byte.to_int() >= 128 {
+        self.prefix = byte.to_int() - 128
+        self.prefix_left = 3
+      } else {
+        self.length_ready(byte.to_int())
+      }
+    } else if self.stage == 2 {
+      self.name.write_byte(byte)
+      if self.name.length() == self.name_length {
+        self.stage = 3
+        if self.value_length == 0 {
+          self.emit()
+        }
+      }
+    } else {
+      self.value.write_byte(byte)
+      if self.value.length() == self.value_length {
+        self.emit()
+      }
+    }
+  }
 }
 
 ///|
+/// Explicit stream terminator. EOF or an empty feed is not a terminator.
 pub fn ParamsDecoder::finish(
   self : ParamsDecoder,
 ) -> Array[(Bytes, Bytes)] raise ProtocolError {
   if self.ended {
-    raise Invalid("PARAMS already ended")
+    raise Invalid("PARAMS already ended or failed")
   }
   self.ended = true
-  let bytes = self.buffer.to_bytes()
-  self.buffer.reset()
-  let mut offset = 0
-  fn read_length(
-    bytes : Bytes,
-    offset : Int,
-  ) -> (Int, Int) raise ProtocolError {
-    if offset >= bytes.length() {
-      raise Truncated("parameter length")
-    }
-    let first = bytes[offset].to_int()
-    if first < 128 {
-      (first, offset + 1)
-    } else {
-      if bytes.length() - offset < 4 {
-        raise Truncated("four-byte parameter length")
-      }
-      (
-        (first - 128) * 16777216 +
-        bytes[offset + 1].to_int() * 65536 +
-        bytes[offset + 2].to_int() * 256 +
-        bytes[offset + 3].to_int(),
-        offset + 4,
-      )
-    }
+  if self.stage != 0 || self.prefix_left != 0 {
+    raise Truncated("parameter at stream end")
   }
-  let pairs = []
-  while offset < bytes.length() {
-    if pairs.length() >= self.max_pairs {
-      raise Limit("parameter count")
-    }
-    let (nl, pos) = read_length(bytes, offset)
-    let (vl, pos) = read_length(bytes, pos)
-    // Subtraction avoids overflow for adversarial 31-bit length fields.
-    if nl > bytes.length() - pos || vl > bytes.length() - pos - nl {
-      raise Truncated("parameter value")
-    }
-    pairs.push(
-      (bytes[pos:pos + nl].to_owned(), bytes[pos + nl:pos + nl + vl].to_owned()),
-    )
-    offset = pos + nl + vl
-  }
-  pairs
+  self.pairs.copy()
 }

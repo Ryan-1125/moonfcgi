@@ -55,7 +55,11 @@ pub struct Session {
 }
 
 ///|
-pub fn Session::new(limits? : Limits = Limits::new()) -> Session raise ProtocolError {
+pub fn Session::new(limits? : Limits) -> Session raise ProtocolError {
+  let limits = match limits {
+    Some(value) => value
+    None => Limits::new()
+  }
   { limits, active: None, serial: 0L, closed: false, }
 }
 
@@ -68,13 +72,11 @@ pub fn Session::accept(
   if self.closed {
     raise Invalid("session is closed")
   }
-  self.accept_inner(record) catch {
-    error => {
-      self.closed = true
-      self.active = None
-      raise error
-    }
+  errdefer {
+    self.closed = true
+    self.active = None
   }
+  self.accept_inner(record)
 }
 
 ///|

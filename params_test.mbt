@@ -15,8 +15,8 @@ test "manual parameter vectors and every split" {
 ///|
 test "params bounded truncation and byte preservation" {
   let p = @moonfcgi.ParamsDecoder::new()
-  p.feed(b"\xff\xff\xff\xff\x00")
   let rejected = try {
+    p.feed(b"\xff\xff\xff\xff\x00")
     ignore(p.finish())
     false
   } catch {

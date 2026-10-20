@@ -25,10 +25,10 @@ pub extend Record with @debug.Debug::{to_repr}
 ///|
 /// Incremental decoder. A failure poisons the decoder; create a new one.
 pub struct Decoder {
-  storage : FixedArray[Byte]
-  mut used : Int
-  mut expected : Int
-  mut failed : Bool
+  priv storage : FixedArray[Byte]
+  priv mut used : Int
+  priv mut expected : Int
+  priv mut failed : Bool
 }
 
 ///|
