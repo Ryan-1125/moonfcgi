@@ -51,12 +51,12 @@ jobs:
       - name: Collect available diagnostic logs
         if: always()
         run: |
-          mkdir -p .ci-artifacts
-          cp ../work/*.log .ci-artifacts/ 2>/dev/null || true
-          cp -R ../work/nginx-test/logs .ci-artifacts/nginx 2>/dev/null || true
+          mkdir -p ci-artifacts
+          cp ../work/*.log ci-artifacts/ 2>/dev/null || true
+          cp -R ../work/nginx-test/logs ci-artifacts/nginx 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: interoperability-logs
-          path: .ci-artifacts/
+          path: ci-artifacts/
           if-no-files-found: ignore

@@ -91,5 +91,3 @@ node tools/consumer.mjs
 Windows 将 go-ref 输出命名为 `.exe`，环境变量用 PowerShell `$env:NAME='...'` 设置。集成脚本默认使用工作区 `../work` 中的本地工具；Linux CI 通过环境变量指定。端口固定为 19000/19001/19002/18080，运行前应空闲。失败即退出非零；SKIP_GO/SKIP_NGINX=1 只用于排障，完整验收不可跳过。集成日志写入 `../work/`。脚本在 finally 中停止本轮启动的进程。
 
 见 [验证记录](docs/VALIDATION.md)、[来源与查重](docs/RESEARCH.md)、[第三方许可](THIRD_PARTY_NOTICES.md)。FastCGI 基于公开 1.0 规范独立实现；Go 源码用于行为参考和差分测试，不是通过 FFI 代理。项目 Apache-2.0，Go 标准库 BSD-3-Clause 来源许可证保留于 `licenses/Go-LICENSE`。
-
-
