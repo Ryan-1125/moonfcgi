@@ -1,10 +1,41 @@
 # MoonFCGI
 
-纯 MoonBit FastCGI 1.0 协议核心、Responder 会话状态机及基于 `moonbitlang/async 0.20.0` 的原生 TCP 服务端库。模块暂定 `Ryan-1125/moonfcgi`，本地 v0.1.0；**尚未发布 Mooncakes**，发布前需要核实账户命名空间。
+[![CI](https://github.com/Ryan-1125/moonfcgi/actions/workflows/ci.yml/badge.svg)](https://github.com/Ryan-1125/moonfcgi/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+MoonFCGI 是 MoonBit 原生 FastCGI 1.0 协议库和 Responder 服务端库，让 MoonBit 程序通过 TCP 接入 Nginx 等 FastCGI 前端。v0.1.0 已发布至 [Mooncakes](https://mooncakes.io/docs/Ryan-1125/moonfcgi@0.1.0)。
+
+协议核心独立于 socket；服务端基于 `moonbitlang/async 0.20.0`，负责多连接并发、请求生命周期、超时和资源清理。应用通过 `Request`、`Response` 和异步 `Handler` 处理请求，Nginx 负责对外 HTTP 接入。
+
+- **协议处理：**增量 record 与 PARAMS 解码，支持跨边界长度前缀、二进制内容及 padding。
+- **连接管理：**Responder、管理查询、请求中止、KEEP_CONN 和顺序连接复用；每连接一个活动请求。
+- **应用响应：**CGI 状态头、重复响应头、二进制正文及有界缓冲。
+- **真实互操作：**外部协议驱动、Go 标准库参考服务和 Nginx 集成测试，覆盖 GET、二进制 POST、错误状态及上游连接复用。
+
+适用于将 MoonBit JSON API 部署在 Nginx 后方、处理二进制请求，或在自定义运行环境中复用 FastCGI 协议核心。它是协议与服务端基础库，应用自行选择路由和业务逻辑。
+
+## 安装
+
+在使用本库的独立 MoonBit 项目中运行：
+
+```sh
+moon update
+moon add Ryan-1125/moonfcgi@0.1.0
+```
+
+根包为 `Ryan-1125/moonfcgi`，TCP 服务端包为 `Ryan-1125/moonfcgi/server`。服务端使用 native 后端。安装命令用于下游项目，不要在 MoonFCGI 自身目录添加自身依赖。
+
+## 运行仓库示例
+
+```sh
+git clone https://github.com/Ryan-1125/moonfcgi.git
+cd moonfcgi
+moon update
+```
 
 ## 快速运行
 
-本机迁移后的工作目录为 `D:\GitHub\moonfcgi`。Windows 的项目专用 SDK 和联调工具可放在忽略的 `.local/work` 中。在 PowerShell 先运行 `. ./tools/Use-LocalToolchain.ps1` 选择 SDK。`./tools/Open-MoonFCGI.ps1` 默认复用普通 VS Code 窗口，保留原有语言和个人配置；新终端仍应执行上述 SDK 脚本。已运行的编辑器语言服务可能沿用旧 SDK；只有明确需要独立 SDK 环境时才运行 `./tools/Open-MoonFCGI.ps1 -Isolated`，该选项使用独立配置，可能不沿用中文显示语言。其他机器可使用匹配的系统 SDK。联调工作目录可通过 `MOONFCGI_WORK_DIR` 指定；默认优先 `.local/work`，否则使用 `../work`。
+使用兼容的 MoonBit SDK。Windows 本地已有项目专用 SDK 时，可先在 PowerShell 执行 `. ./tools/Use-LocalToolchain.ps1`；其他机器直接使用已安装的兼容 SDK。Nginx、Go 和 Node.js 仅用于示例或集成验证，不由本库管理。
 
 当前代码使用 moon 0.1.20261016 / moonc v0.10.16+b1a0e846e（含 Int32 新语法），旧版 0.10.14 不能检查当前源码。已验证 Windows x64 native（Nginx 1.28.0）和 Ubuntu 24.04 native（Nginx 1.24.0），Go 参考版本固定 1.23.2。Linux 格式/check/build/test、真实 TCP/Go/Nginx 和独立消费者均已在 [GitHub CI](https://github.com/Ryan-1125/moonfcgi/actions/workflows/ci.yml) 通过。
 
@@ -52,7 +83,7 @@ async fn main {
 }
 ```
 
-具体配置语法以已编译的 `cmd/main/moon.pkg` 为准。完整公开签名见根目录及 `server/` 的 `pkg.generated.mbti`。离线打包和独立消费者验证使用 `node tools/consumer.mjs`；它消费 `moon package` 的解包内容，隔离于开发目录，再通过 `moon.work` 解析本地模块。发布后才可以使用 `moon add Ryan-1125/moonfcgi@0.1.0`，当前不能宣称注册表安装成功。
+包配置参见 [示例 moon.pkg](cmd/main/moon.pkg)，完整应用参见 [cmd/main](cmd/main/demo.mbt)。公开签名见 [核心 API](pkg.generated.mbti) 和 [服务端 API](server/pkg.generated.mbti)。`node tools/consumer.mjs` 对实际打包内容进行隔离消费验证：解包后在独立 workspace 中编译并运行消费者，与开发目录分离。
 
 | API | 契约 |
 |---|---|
@@ -80,7 +111,19 @@ CONTENT_LENGTH 在 PARAMS 终止时校验：非法十进制、超过正文上限
 
 CGI 头不包含 HTTP 状态行；库禁止自定义 Status / Content-Length / Transfer-Encoding / Connection，防止 CR/LF 和控制字符注入。HEAD 无正文，204/304 无正文和 Content-Length。不实现 1xx、trailers、应用级流式输出、Unix socket、fd0、Authorizer/Filter、进程管理、multipart、TLS、自动重连或 Web 框架。TCP EOF 在请求完成之前视为断开，**不支持以 TCP 半关闭代替 STDIN 终止**。
 
-## 验证与来源
+## 测试与互操作
+
+已有验证记录包含 **18 项核心测试、13 组真实 TCP/Go/Nginx 联调及 1 项独立包消费者验证**。Windows x64 和 Ubuntu 24.04 native 均有运行记录；完整环境、断言和命令见 [验证记录](docs/VALIDATION.md)。
+
+| 验证对象 | 覆盖内容 |
+|---|---|
+| 协议核心 | 固定字节向量、分片、PARAMS 跨 record、截断、大小限制和会话状态 |
+| TCP 服务 | 中止、多路复用拒绝、请求 ID 复用、跨连接隔离、处理与写出超时 |
+| Go 参考实现 | 共同支持场景中的 JSON、二进制正文、重复头、大响应和错误状态 |
+| Nginx | GET、二进制 POST、404/500、HEAD、204/304 和真实上游连接复用 |
+| 独立消费者 | 实际发布归档的协议与服务端 API 编译、运行 |
+
+[GitHub Actions](https://github.com/Ryan-1125/moonfcgi/actions/workflows/ci.yml) 执行格式、检查、构建、测试、接口检查、真实联调及独立消费者验证。
 
 ```sh
 moon fmt --check
@@ -94,4 +137,6 @@ node tools/consumer.mjs
 
 Windows 将 go-ref 输出命名为 `.exe`，环境变量用 PowerShell `$env:NAME='...'` 设置。集成脚本默认使用工作区 `../work` 中的本地工具；Linux CI 通过环境变量指定。端口固定为 19000/19001/19002/18080，运行前应空闲。失败即退出非零；SKIP_GO/SKIP_NGINX=1 只用于排障，完整验收不可跳过。集成日志写入 `../work/`。脚本在 finally 中停止本轮启动的进程。
 
-见 [验证记录](docs/VALIDATION.md)、[来源与查重](docs/RESEARCH.md)、[第三方许可](THIRD_PARTY_NOTICES.md)。FastCGI 基于公开 1.0 规范独立实现；Go 源码用于行为参考和差分测试，不是通过 FFI 代理。项目 Apache-2.0，Go 标准库 BSD-3-Clause 来源许可证保留于 `licenses/Go-LICENSE`。
+## 许可证与参考来源
+
+项目采用 [Apache-2.0](LICENSE)。参考范围见 [来源与查重](docs/RESEARCH.md) 和 [第三方许可](THIRD_PARTY_NOTICES.md)。FastCGI 基于公开 1.0 规范独立实现；Go 源码用于行为参考和差分测试，不是通过 FFI 代理。项目 Apache-2.0，Go 标准库 BSD-3-Clause 来源许可证保留于 `licenses/Go-LICENSE`。

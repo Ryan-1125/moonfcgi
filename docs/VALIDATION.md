@@ -1,5 +1,9 @@
 # 本地验收记录
 
+> 当前发布状态（2026-10-21）：Ryan-1125/moonfcgi 0.1.0 已发布 Mooncakes，依据用户提供的发布成功输出与包页面。下文“未发布”等文字保留为早期验收记录，不代表当前发布状态。
+>
+> 2026-10-21 本地复验：moon info、moon fmt、native check/build 成功，18 项核心测试、13 组真实 TCP/Go/Nginx 联调、1 项实际打包归档的独立消费者测试全部通过。首次受限沙箱运行出现监听启动失败及临时目录拒绝访问；同一套脚本在沙箱外重跑通过，没有跳过 Go/Nginx。独立消费者目录为 C:\Users\Lenovo\AppData\Local\Temp\moonfcgi-consumer-So9XB0。本次独立消费对象为本地发布归档，不是注册表下载。
+
 最新维护验证：18 项核心测试、13 组真实网络联调、1 项独立消费者测试通过。此前各节的版本和数量保留为阶段记录；本轮细节见文末。
 
 日期：2026-10-20。实际运行平台 Windows x64，MSVC native 后端；不是模拟运行。
@@ -104,4 +108,3 @@ Windows 上同版本 SDK 安装在工作区 ../work/moon-sdk，未替换用户�
 在 `D:\GitHub\moonfcgi`，先 `. ./tools/Use-LocalToolchain.ps1`，再运行 `moon info`、`moon fmt`、`moon check --target native`、`moon build --target native`、`moon test --target native`、`node tools/integration.mjs`、`node tools/consumer.mjs`。结果为 18 / 13 / 1 全部通过。
 
 `tools/Open-MoonFCGI.ps1` 已改为默认复用普通窗口，只有显式 `-Isolated` 才启用独立配置。PowerShell Parser 语法检查通过；本轮没有再次启动编辑器窗口，也未声称交互界面经过自动化测试。
-
