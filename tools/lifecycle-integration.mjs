@@ -21,7 +21,12 @@ class Client{
  close(){this.s.destroy();}
 }
 async function waitFor(test,ms=3000){const end=Date.now()+ms;while(!test()){if(Date.now()>end)throw Error('fixture wait timeout');await sleep(10);}}
-async function server(mode='stream',endpoint=19200,inherited=false){
+async function vacantPort(){
+ const probe=net.createServer();await new Promise((res,rej)=>{probe.once('error',rej);probe.listen(0,'127.0.0.1',res);});
+ const port=probe.address().port;await new Promise((res,rej)=>probe.close(e=>e?rej(e):res()));return port;
+}
+async function server(mode='stream',endpoint=undefined,inherited=false){
+ if(endpoint===undefined)endpoint=await vacantPort();
  const port=typeof endpoint==='string'?endpoint.slice(5):endpoint;
  const args=inherited?[resolve(root,'tools/inherited-launch.py'),exe,String(endpoint)]:[typeof endpoint==='string'?endpoint:`127.0.0.1:${port}`,mode];
  const child=spawn(inherited?(process.env.PYTHON_BIN||'python3'):exe,args,{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});children.push(child);
@@ -84,7 +89,7 @@ try{
   });
   await test('POSIX inherited TCP and Unix listeners drain on explicit shutdown',async()=>{
    const path=resolve(work,'lifecycle-inherited.sock');
-   for(const endpoint of [19200,'unix:'+path]){
+   for(const endpoint of [undefined,'unix:'+path]){
     const s=await server('stream',endpoint,true),c=await Client.open(s.port);
     try{c.request('/slow');c.s.write(frame(9,Buffer.alloc(0),0));assert.equal((await c.next()).t,10);await stop(s);assert.equal((await c.response()).body.toString(),'done');}finally{c.close();}
    }
