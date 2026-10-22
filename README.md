@@ -40,7 +40,7 @@ moon update
 
 使用兼容的 MoonBit SDK。Windows 本地已有项目专用 SDK 时，可先在 PowerShell 执行 `. ./tools/Use-LocalToolchain.ps1`；其他机器直接使用已安装的兼容 SDK。Nginx、Go 和 Node.js 仅用于示例或集成验证，不由本库管理。
 
-当前代码使用 moon 0.1.20261016 / moonc v0.10.16+b1a0e846e（含 Int32 新语法），旧版 0.10.14 不能检查当前源码。本轮已验证 Windows x64 native（Nginx 1.28.0），Go 参考版本固定 1.23.2。此前缓冲版已在 Ubuntu 24.04（Nginx 1.24.0）的 [GitHub CI](https://github.com/Ryan-1125/moonfcgi/actions/workflows/ci.yml) 通过；新增 0.2.0 POSIX 能力以新一轮 CI 的实际结果为准。
+当前代码使用 moon 0.1.20261016 / moonc v0.10.16+b1a0e846e（含 Int32 新语法），旧版 0.10.14 不能检查当前源码。本轮已验证 Windows x64 native（Nginx 1.28.0），Go 参考版本固定 1.23.2。0.2.0 也已在 Ubuntu 24.04（Nginx 1.24.0、libfcgi 2.4.2-2.1ubuntu0.24.04.1）的 [Linux CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39717428442) 通过，包含真实 Unix socket、继承 TCP/Unix fd0、路径清理及三个角色的 libfcgi 对照。
 
 ```sh
 moon check --target native
@@ -160,7 +160,7 @@ moon run cmd/stream --target native -- unix:/run/moonfcgi/app.sock
 完整行为、平台验证和复查命令见 [扩展说明](docs/STREAMING.md)。
 ## 测试与互操作
 
-2026-10-22 Windows 实测 **26 项核心测试、原有 13 组真实 TCP/Go/Nginx 联调、新增 11 组流式/角色/Nginx 联调及 1 项独立包消费者验证**。新增 POSIX 运行测试已纳入 Linux CI，结果单独记录；不沿用旧版 Linux 通过记录证明新功能。Windows x64 和 Ubuntu 24.04 native 均有运行记录；完整环境、断言和命令见 [验证记录](docs/VALIDATION.md)。
+2026-10-22 Windows 实测 **26 项核心测试、原有 13 组真实 TCP/Go/Nginx 联调、新增 11 组流式/角色/Nginx 联调及 1 项独立包消费者验证**。Linux CI 同轮通过 26 项核心、13 组原有联调、16 组流式/角色/POSIX/libfcgi 联调和独立消费者；详见 [0.2.0 CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39717428442)。Windows x64 和 Ubuntu 24.04 native 均有运行记录；完整环境、断言和命令见 [验证记录](docs/VALIDATION.md)。
 
 | 验证对象 | 覆盖内容 |
 |---|---|

@@ -14,8 +14,10 @@
   with restrictive permissions, descriptor ownership checks and conditional path cleanup.
 - Add a native streaming example, unbuffered Nginx configuration, independent wire
   tests and Linux CI coverage for Unix/fd0 plus external libfcgi comparison.
-- Windows streaming/TCP/Nginx tests pass locally; POSIX and libfcgi runtime evidence
-  must come from the new Linux CI run, not previous-version CI results.
+- Verify Windows streaming/TCP/Nginx locally and POSIX transports/three-role libfcgi
+  interoperability in Linux CI 39717428442 (26 core tests, 13 existing and 16 new
+  integration groups, plus the independent 0.2.0 archive consumer).
+- Keep the original input deadline after an early response until input draining completes.
 
 - Validate CONTENT_LENGTH as soon as PARAMS terminates. Reject invalid decimal
   values, conflicting duplicates and configured body-limit violations before

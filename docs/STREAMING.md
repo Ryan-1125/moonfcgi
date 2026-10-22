@@ -50,7 +50,11 @@ Windows native：26 项核心测试、13 组既有 TCP/Go/Nginx 联调、11 组�
 
 新增驱动证实：STDIN 未终止时已收到响应头及二进制回显；9 MiB 上传；ABORT 后同 ID 复用；提前响应后排空；Authorizer 允许/拒绝；Filter DATA；异常前后不同完成行为；非法长度和流序列拒绝；背压中的超时；4 MiB Nginx 下载。真实 Nginx 测试让客户端只发送一半 HTTP 正文，收到回显后才发送余下一半，排除仅在请求结束后一次性输出的假流式实现。
 
-本机 WSL 未安装，Docker 不可用，因此新增 Unix/fd0 以及系统 libfcgi 的 Linux 运行结果尚无本机证据。CI 已增加真实 Unix、fd0 和 libfcgi 对照步骤；只有实际 CI 通过后才能将本节升级为已验证。旧版 Linux CI 通过不能证明新增代码通过。
+Linux 实测已通过：[GitHub Actions 39717428442](https://github.com/Ryan-1125/moonfcgi/actions/runs/39717428442)，代码提交 `9cf9d5b372fd632d5881befa7c74af7a2b26207a`。Ubuntu 24.04、moon 0.1.20261020、moonc v0.10.16+b1a0e846e、Node.js 22.23.3、Go 1.23.2、Nginx 1.24.0、libfcgi-dev 2.4.2-2.1ubuntu0.24.04.1。26 项核心、13 组原有联调、16 组新增联调及 1 项独立消费者全部通过。
+
+新增 POSIX 断言包括：真实 Unix socket 二进制交换及 0600 权限；Python 创建 listener 后 exec 的 TCP fd0 与 Unix fd0；SIGTERM 后正常清理自建 socket 路径；拒绝覆盖已有普通文件。Nginx 的 Linux 流式测试通过真实 Unix upstream。libfcgi 对照覆盖共同支持的 Responder 二进制回显、Authorizer 允许/拒绝及 Filter DATA。
+
+复验同时修正了提前响应的期限边界：输入尚未排空时不刷新整个请求期限，排空后才开始下一周期。核心状态测试和真实背压关闭时限断言覆盖该行为。本机无 WSL/Docker；POSIX 证据来自上述真实 Linux runner，而不是 Windows 编译结果。
 
 ## 设计边界
 
