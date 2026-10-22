@@ -44,7 +44,9 @@ NGINX_BIN="$(command -v nginx)" LIBFCGI_REFERENCE_BIN="$PWD/../work/libfcgi-ref"
 node tools/consumer.mjs
 ```
 
-## 当前验证证据
+## 流式扩展阶段验证证据
+
+后续新增的服务生命周期、结构化事件和分阶段期限见 [生命周期说明](LIFECYCLE.md)，以下为流式扩展阶段的可追溯记录。
 
 Windows native：26 项核心测试、13 组既有 TCP/Go/Nginx 联调、11 组新增真实流式/角色/Nginx 联调通过。0.2.0 实际打包归档的独立消费者测试通过，隔离目录为 C:\Users\Lenovo\AppData\Local\Temp\moonfcgi-consumer-Sf0yQ0；测试同时编译新增流式 API。
 
@@ -58,7 +60,7 @@ Linux 实测已通过：[GitHub Actions 39717428442](https://github.com/Ryan-112
 
 ## 设计边界
 
-单连接一个活动请求，不做多路复用。每个输入流的队列容量为 4，阻塞时不会继续无限读取；后续控制消息的读取也可能被背压推迟，处理/周期期限负责最终取消。总正文、DATA 和响应字节仍受 Limits 限制，应用自行保留块不受库约束。
+单连接一个活动请求，不做多路复用。每个输入流的默认队列容量为 4（可通过 input_queue_records 配置），阻塞时不会继续无限读取；后续控制消息的读取也可能被背压推迟，处理/周期期限负责最终取消。总正文、DATA 和响应字节仍受 Limits 限制，应用自行保留块不受库约束。
 
 逐块写返回不代表 HTTP 客户端已经收到；Nginx、内核或网络可能缓冲。响应提交后不能回滚状态，应用异常以非零 appStatus 结束；传输写错误或不完整的声明响应关闭连接。Filter 前置 STDIN 未完成时提前返回会使连接失败，不伪造成功响应。正文未被应用消费而提前响应时，协议层继续校验并排空，之后才允许下一请求。
 

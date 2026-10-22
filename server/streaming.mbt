@@ -5,8 +5,8 @@ pub struct BodyStream {
 }
 
 ///|
-fn BodyStream::new() -> BodyStream {
-  { queue: @aqueue.Queue(kind=Blocking(4)), ended: false, }
+fn BodyStream::new(capacity : Int32) -> BodyStream {
+  { queue: @aqueue.Queue(kind=Blocking(capacity)), ended: false, }
 }
 
 ///|
@@ -181,18 +181,54 @@ pub async fn serve_stream_io(
     Some(v) => v
     None => Config::new()
   }
+  if config.control.is_stopping() {
+    return
+  }
+  observed(config, state => {
+    stream_io_inner(reader, writer, handler, config, roles, state)
+  })
+}
+
+///|
+async fn stream_io_inner(
+  reader : &@io.Reader,
+  writer : &@io.Writer,
+  handler : StreamHandler,
+  config : Config,
+  roles : Array[@fcgi.Role],
+  state : ConnectionState,
+) -> Unit {
   let session = @fcgi.StreamSession::new(limits=config.limits, roles~)
   defer session.close()
   let decoder = @fcgi.Decoder::new()
   let mutex = @async.Mutex()
   let output : async (Bytes) -> Unit = bytes => {
-    @async.with_timeout(config.write_timeout_ms, () => writer.write(bytes))
+    @async.with_timeout(
+      config.write_timeout_ms,
+      () => {
+        writer.write(bytes) catch {
+          error => {
+            if @async.is_cancellation_error(error) {
+              raise error
+            }
+            raise ServerError::Transport(error.to_string())
+          }
+        }
+        state.sent(bytes)
+      },
+      error=ServerError::Deadline(Stage::Write),
+    )
   }
   @async.with_task_group <| group => {
     let timer = @async.Timer(config.cycle_timeout_ms)
     group.spawn_bg(no_wait=true) <| () => {
       timer.wait()
-      fail("stream cycle timeout")
+      raise ServerError::Deadline(Stage::Cycle)
+    }
+    group.spawn_bg(no_wait=true, () => state.watch_deadlines())
+    group.spawn_bg(no_wait=true) <| () => {
+      state.wait_shutdown()
+      group.return_immediately(())
     }
     let mut current : (StreamRequest, ResponseWriter, @async.Task[Unit])? = None
     defer (if current is Some((request, _, _)) {
@@ -206,7 +242,16 @@ pub async fn serve_stream_io(
         group.return_immediately(())
         return
       }
+      state.received(bytes)
       for record in decoder.feed(bytes) {
+        if record.kind == 1 && !state.active {
+          if config.control.is_stopping() {
+            group.return_immediately(())
+            return
+          }
+          state.start(record.id)
+        }
+        state.input_record(record)
         // Serialize protocol state transitions with response completion and writes.
         let events = {
           mutex.acquire()
@@ -226,11 +271,12 @@ pub async fn serve_stream_io(
             Start(head) => {
               let request = {
                 head,
-                body: BodyStream::new(),
-                data: BodyStream::new(),
+                body: BodyStream::new(config.input_queue_records),
+                data: BodyStream::new(config.input_queue_records),
               }
               if head.role == @fcgi.Authorizer {
                 request.body.ended = true
+                state.input_end()
               }
               if head.role != @fcgi.Filter {
                 request.data.ended = true
@@ -250,12 +296,22 @@ pub async fn serve_stream_io(
               }
               let task = group.spawn(no_wait=true) <| () => {
                 let mut failed = false
-                @async.with_timeout(config.handler_timeout_ms, () => {
-                  handler(request, response)
-                }) catch {
+                @async.with_timeout(
+                  config.handler_timeout_ms,
+                  () => handler(request, response),
+                  error=ServerError::Deadline(Stage::Handler),
+                ) catch {
                   error => {
                     if @async.is_cancellation_error(error) {
                       raise error
+                    }
+                    match error {
+                      ServerError::Protocol(_)
+                      | ServerError::Transport(_)
+                      | ServerError::Deadline(Stage::Write) => raise error
+                      ServerError::Deadline(Stage::Handler) =>
+                        state.error(classify(error))
+                      _ => state.error(ServerError::Handler(error.to_string()))
                     }
                     failed = true
                     if !response.started && session.can_output(head) {
@@ -266,11 +322,13 @@ pub async fn serve_stream_io(
                 let close = response.finish(
                   app_status=if failed { 1U } else { 0U },
                 )
+                state.finish(if failed { Failed } else { Completed })
                 // Once the application returns, drain remaining input without buffering.
                 request.body.queue.close(clear=true)
                 request.data.queue.close(clear=true)
                 if session.is_idle() {
                   timer.refresh()
+                  state.idle()
                 }
                 if close {
                   group.return_immediately(())
@@ -292,7 +350,15 @@ pub async fn serve_stream_io(
                   error => if !response.finished { raise error }
                 }
               }
-            InputEnd(token, kind) =>
+            InputEnd(token, kind) => {
+              if kind == 8 ||
+                (
+                  kind == 5 &&
+                  current is Some((r, _, _)) &&
+                  r.head.role != @fcgi.Filter
+                ) {
+                state.input_end()
+              }
               if current is Some((request, response, _)) &&
                 request.head.token == token &&
                 !response.finished {
@@ -306,6 +372,7 @@ pub async fn serve_stream_io(
                   error => if !response.finished { raise error }
                 }
               }
+            }
             Aborted(token) => {
               if current is Some((request, _, task)) &&
                 request.head.token == token {
@@ -315,6 +382,8 @@ pub async fn serve_stream_io(
                 current = None
               }
               timer.refresh()
+              state.finish(Aborted)
+              state.idle()
             }
             Close => {
               group.return_immediately(())
@@ -326,6 +395,7 @@ pub async fn serve_stream_io(
         // Early responses do not reset the input deadline until draining finishes.
         if (record.kind == 5 || record.kind == 8) && session.is_idle() {
           timer.refresh()
+          state.idle()
         }
       }
     }
@@ -358,13 +428,24 @@ pub async fn serve_stream(
   defer listener.close()
   @async.with_task_group <| group => {
     let slots = @async.Semaphore(config.limits.connections)
-    while true {
-      slots.acquire()
-      let (conn, _) = listener.accept()
-      group.spawn_bg(allow_failure=true) <| () => {
-        defer slots.release()
-        serve_stream_connection(conn, handler, config~, roles~)
-      }
-    }
+    run_accepting(
+      group,
+      config,
+      () => {
+        while true {
+          slots.acquire()
+          let (conn, _) = listener.accept()
+          if config.control.is_stopping() {
+            conn.close()
+            return
+          }
+          group.spawn_bg(allow_failure=true) <| () => {
+            defer slots.release()
+            serve_stream_connection(conn, handler, config~, roles~)
+          }
+        }
+      },
+      () => listener.close(),
+    )
   }
 }

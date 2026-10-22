@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Service lifecycle and diagnostics
+
+- Add explicit one-shot Control.shutdown: stop accepting, drain active responses,
+  and cancel remaining requests after a configurable shutdown deadline. Apply it
+  to buffered/streaming TCP and POSIX listeners without changing signal handlers.
+- Add typed ServerError/ServerEvent, request completion reports, isolated observer
+  callbacks and shared statistics snapshots with connection/request/error/byte counts.
+- Add configurable idle/input deadlines and 1..1024-record input queues while
+  retaining handler/write deadlines and the independent total-cycle limit.
+- Preserve cancellation errors inside write timeouts so slow readers are reported
+  as Deadline(Write), rather than being misclassified as transport failures.
+
 ### 0.2.0 — streaming and deployment expansion
 
 - Add socket-independent StreamSession, RequestHead and explicit Responder,

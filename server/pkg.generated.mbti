@@ -6,6 +6,7 @@ import {
   "moonbitlang/async/io",
   "moonbitlang/async/raw_fd",
   "moonbitlang/async/socket",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -26,6 +27,13 @@ pub async fn serve_stream_io(&@io.Reader, &@io.Writer, async (StreamRequest, Res
 pub async fn serve_unix(String, async (StreamRequest, ResponseWriter) -> Unit, config? : Config, roles? : Array[@moonfcgi.Role], mode? : Int32) -> Unit
 
 // Errors
+pub suberror ServerError {
+  Protocol(String)
+  Transport(String)
+  Handler(String)
+  Deadline(Stage)
+} derive(@debug.Debug)
+pub fn ServerError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub struct BodyStream {
@@ -38,8 +46,42 @@ pub struct Config {
   cycle_timeout_ms : Int32
   write_timeout_ms : Int32
   handler_timeout_ms : Int32
+  idle_timeout_ms : Int32
+  input_timeout_ms : Int32
+  shutdown_timeout_ms : Int32
+  input_queue_records : Int32
+  control : Control
+  stats : Stats
+  // private fields
 }
-pub fn Config::new(limits? : @moonfcgi.Limits, cycle_timeout_ms? : Int32, write_timeout_ms? : Int32, handler_timeout_ms? : Int32) -> Self raise
+pub fn Config::new(limits? : @moonfcgi.Limits, cycle_timeout_ms? : Int32, write_timeout_ms? : Int32, handler_timeout_ms? : Int32, idle_timeout_ms? : Int32, input_timeout_ms? : Int32, shutdown_timeout_ms? : Int32, input_queue_records? : Int32, control? : Control, stats? : Stats, on_event? : (ServerEvent) -> Unit raise) -> Self raise
+
+pub struct Control {
+  // private fields
+}
+pub fn Control::is_stopping(Self) -> Bool
+pub fn Control::new() -> Self
+pub fn Control::shutdown(Self) -> Unit
+
+pub(all) enum Outcome {
+  Completed
+  Failed
+  Aborted
+  Cancelled
+} derive(Eq, @debug.Debug)
+pub fn Outcome::equal(Self, Self) -> Bool
+pub fn Outcome::not_equal(Self, Self) -> Bool
+pub fn Outcome::to_repr(Self) -> @debug.Repr
+
+pub(all) struct RequestReport {
+  connection_id : Int64
+  request_id : Int32
+  outcome : Outcome
+  elapsed_ms : Int64
+  input_content_bytes : Int64
+  output_content_bytes : Int64
+} derive(@debug.Debug)
+pub fn RequestReport::to_repr(Self) -> @debug.Repr
 
 pub struct ResponseWriter {
   // private fields
@@ -47,6 +89,52 @@ pub struct ResponseWriter {
 pub async fn ResponseWriter::start(Self, status? : Int32, headers? : Array[(String, String)], content_length? : Int32) -> Unit
 pub async fn ResponseWriter::write(Self, Bytes) -> Unit
 pub async fn ResponseWriter::write_stderr(Self, Bytes) -> Unit
+
+pub(all) enum ServerEvent {
+  ConnectionOpened(Int64)
+  RequestStarted(Int64, Int32)
+  RequestFinished(RequestReport)
+  ConnectionError(Int64, ServerError)
+  ConnectionClosed(Int64)
+} derive(@debug.Debug)
+pub fn ServerEvent::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Snapshot {
+  connections : Int64
+  active_connections : Int64
+  requests : Int64
+  active_requests : Int64
+  completed : Int64
+  failed : Int64
+  aborted : Int64
+  cancelled : Int64
+  bytes_read : Int64
+  bytes_written : Int64
+  protocol_errors : Int64
+  transport_errors : Int64
+  handler_errors : Int64
+  timeouts : Int64
+  observer_errors : Int64
+} derive(@debug.Debug)
+pub fn Snapshot::to_repr(Self) -> @debug.Repr
+
+pub(all) enum Stage {
+  Idle
+  Input
+  Handler
+  Write
+  Cycle
+  Shutdown
+} derive(Eq, @debug.Debug)
+pub fn Stage::equal(Self, Self) -> Bool
+pub fn Stage::not_equal(Self, Self) -> Bool
+pub fn Stage::to_repr(Self) -> @debug.Repr
+
+pub struct Stats {
+  // private fields
+}
+pub fn Stats::new() -> Self
+pub fn Stats::snapshot(Self) -> Snapshot
 
 pub struct StreamRequest {
   head : @moonfcgi.RequestHead

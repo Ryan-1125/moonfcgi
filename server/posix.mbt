@@ -33,24 +33,35 @@ async fn serve_listener_fd(
   defer listener.close()
   @async.with_task_group <| group => {
     let slots = @async.Semaphore(config.limits.connections)
-    while true {
-      slots.acquire()
-      let mut accepted = listener_accept(fd)
-      // async 0.20 has no public readiness wait for a listener fd.
-      // Only accept is polled; connection I/O uses official async readiness.
-      while accepted == -2 {
-        @async.sleep(5)
-        accepted = listener_accept(fd)
-      }
-      if accepted < 0 {
-        fail("POSIX accept failed")
-      }
-      let conn = @raw_fd.RawFdStream(accepted)
-      group.spawn_bg(allow_failure=true) <| () => {
-        defer slots.release()
-        serve_raw_connection(conn, handler, config~, roles~)
-      }
-    }
+    run_accepting(
+      group,
+      config,
+      () => {
+        while true {
+          slots.acquire()
+          let mut accepted = listener_accept(fd)
+          // async 0.20 has no public readiness wait for a listener fd.
+          // Only accept is polled; connection I/O uses official async readiness.
+          while accepted == -2 {
+            @async.sleep(5)
+            accepted = listener_accept(fd)
+          }
+          if accepted < 0 {
+            fail("POSIX accept failed")
+          }
+          let conn = @raw_fd.RawFdStream(accepted)
+          if config.control.is_stopping() {
+            conn.close()
+            return
+          }
+          group.spawn_bg(allow_failure=true) <| () => {
+            defer slots.release()
+            serve_raw_connection(conn, handler, config~, roles~)
+          }
+        }
+      },
+      () => listener.close(),
+    )
   }
 }
 

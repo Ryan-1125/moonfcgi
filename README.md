@@ -132,7 +132,7 @@ async fn main {
 
 包导入与 native 配置见 [流式可执行示例](cmd/stream/moon.pkg)。`BodyStream.read()` 在 FastCGI 空终止记录处返回 `None`；socket EOF、协议截断和取消属于错误，不冒充正常流结束。`response.start(content_length=...)` 可声明已知长度；省略时不生成 Content-Length。`write` 直接等待 socket 写出，`write_stderr` 使用独立 stderr 流。库在 handler 返回后发送两个流终止记录和一次 END_REQUEST。
 
-输入采用每流最多 4 个 record 的阻塞队列（每个 record 最多 65535 字节），输出逐 record 写入，形成有界背压；这不是进程总内存承诺。输入队列阻塞期间后续 ABORT 也会等待读取进度，周期/handler 超时提供最终取消界限。响应头提交前的 handler 错误回退 500；提交后不能改写状态，已输出部分保留并以非零 appStatus 结束。写失败或声明长度不符会关闭连接。
+输入采用每流默认最多 4 个 record（可配置）的阻塞队列（每个 record 最多 65535 字节），输出逐 record 写入，形成有界背压；这不是进程总内存承诺。输入队列阻塞期间后续 ABORT 也会等待读取进度，周期/handler 超时提供最终取消界限。响应头提交前的 handler 错误回退 500；提交后不能改写状态，已输出部分保留并以非零 appStatus 结束。写失败或声明长度不符会关闭连接。
 
 | 入口 | 用途 |
 |---|---|
@@ -158,9 +158,18 @@ moon run cmd/stream --target native -- unix:/run/moonfcgi/app.sock
 [流式 Nginx 配置](examples/nginx-stream.conf) 同时关闭请求和响应缓冲；`/echo` 支持边上传边回显，`/download` 分块输出 4 MiB。Unix socket 部署时让 Nginx worker 与应用拥有匹配的访问权限，按需显式配置 socket mode；库不接管进程管理器。
 
 完整行为、平台验证和复查命令见 [扩展说明](docs/STREAMING.md)。
+## 服务生命周期与诊断
+
+缓冲式与流式 API 均支持 `Config::new(control~, stats~, on_event=...)`。`Control.shutdown()` 停止本实例 accept，允许在途响应在 `shutdown_timeout_ms` 内完成，随后取消剩余任务；serve 返回时子连接已清理。该 API 不替换进程信号处理器，外层取消仍为立即清理。
+
+`ServerEvent` 提供连接、请求完成报告及结构化错误；回调抛错只计入统计，不中断服务。`Stats.snapshot()` 提供活动/累计请求与连接、读写量和错误计数。连接错误通过 `ServerError` 区分 Protocol、Transport、Handler 及带阶段的 Deadline。
+
+可分别设置 idle/input/handler/write 超时，保留总周期保护；`input_queue_records` 将每流排队容量配置为 1..1024，默认 4。流式输入期限不会因持续滴入字节而刷新，handler 与输入期限可能重叠，以先到者为准。
+
+完整 API、停机语义、统计口径和验证命令见 [生命周期说明](docs/LIFECYCLE.md)。
 ## 测试与互操作
 
-2026-10-22 Windows 实测 **26 项核心测试、原有 13 组真实 TCP/Go/Nginx 联调、新增 11 组流式/角色/Nginx 联调及 1 项独立包消费者验证**。Linux CI 同轮通过 26 项核心、13 组原有联调、16 组流式/角色/POSIX/libfcgi 联调和独立消费者；详见 [0.2.0 CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39717428442)。Windows x64 和 Ubuntu 24.04 native 均有运行记录；完整环境、断言和命令见 [验证记录](docs/VALIDATION.md)。
+2026-10-22 Windows 实测 **28 项核心与服务配置测试、原有 13 组真实 TCP/Go/Nginx 联调、新增 11 组流式/角色/Nginx 联调、10 组生命周期联调及 1 项独立包消费者验证**。此前流式扩展的 Linux CI 通过 26 项核心、13 组原有联调、16 组流式/角色/POSIX/libfcgi 联调和独立消费者；详见 [0.2.0 CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39717428442)。Windows x64 和 Ubuntu 24.04 native 均有运行记录；完整环境、断言和命令见 [验证记录](docs/VALIDATION.md)。
 
 | 验证对象 | 覆盖内容 |
 |---|---|

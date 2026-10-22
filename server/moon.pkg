@@ -6,6 +6,9 @@ import {
   "moonbitlang/async/aqueue",
   "moonbitlang/async/raw_fd",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/env",
+  "moonbitlang/core/debug",
+  "moonbitlang/async/cond_var" @cond,
 }
 
 supported_targets = "+native"
