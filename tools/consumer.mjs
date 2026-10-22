@@ -9,7 +9,8 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const moon=process.platform==='win32'?'moon.exe':'moon';
 function run(args,cwd){const r=spawnSync(moon,args,{cwd,stdio:'inherit',windowsHide:true});if(r.error)throw r.error;if(r.status!==0)throw Error(`moon ${args.join(' ')} failed: ${r.status}`);}
 run(['package'],root);
-const archive=resolve(root,'_build/publish/Ryan-1125-moonfcgi-0.1.0.zip');
+const version=readFileSync(resolve(root,"moon.mod"),"utf8").match(/version\s*=\s*"([^"]+)"/)[1];
+const archive=resolve(root,`_build/publish/Ryan-1125-moonfcgi-${version}.zip`);
 const zip=readFileSync(archive);let eocd=zip.length-22;
 while(eocd>=0&&zip.readUInt32LE(eocd)!==0x06054b50)eocd--;
 if(eocd<0)throw Error('missing ZIP directory');
@@ -28,7 +29,7 @@ for(let i=0;i<count;i++){
 }
 const consumer=resolve(temp,'consumer');mkdirSync(consumer);
 writeFileSync(resolve(temp,'moon.work'),'members = ["package", "consumer"]\n');
-writeFileSync(resolve(consumer,'moon.mod'),'name = "validation/consumer"\nversion = "0.0.0"\npreferred_target = "native"\nimport { "Ryan-1125/moonfcgi@0.1.0" }\n');
+writeFileSync(resolve(consumer,'moon.mod'),('name = "validation/consumer"\nversion = "0.0.0"\npreferred_target = "native"\nimport { "Ryan-1125/moonfcgi@0.1.0" }\n').replace('0.1.0',version));
 writeFileSync(resolve(consumer,'moon.pkg'),'import { "Ryan-1125/moonfcgi" @fcgi, "Ryan-1125/moonfcgi/server" @server }\nsupported_targets = "+native"\n');
 writeFileSync(resolve(consumer,'consumer.mbt'),`///|
 pub fn verify() -> Unit raise {
@@ -48,6 +49,14 @@ pub fn verify() -> Unit raise {
   let handler : @server.Handler = request => @fcgi.Response::new(request.body)
   ignore(handler)
   ignore(@server.Config::new())
+  let stream = @fcgi.StreamSession::new(roles=[@fcgi.Responder, @fcgi.Authorizer, @fcgi.Filter])
+  stream.finish()
+  assert_eq(@fcgi.Response::new(b"").cgi_headers(), b"Status: 200 OK\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\n")
+  let streaming : @server.StreamHandler = (request, response) => {
+    response.start()
+    while request.body.read() is Some(bytes) { response.write(bytes) }
+  }
+  ignore(streaming)
 }
 `);
 writeFileSync(resolve(consumer,'consumer_test.mbt'), '///|\ntest "installed archive core and server API" { @consumer.verify() }\n');
@@ -55,4 +64,3 @@ run(['check','--target','native'],consumer);
 run(['build','--target','native'],consumer);
 run(['test','--target','native','-p','validation/consumer'],consumer);
 console.log(`PASS independent consumer of ${archive}\nIsolated workspace retained for inspection: ${temp}`);
-

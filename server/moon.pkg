@@ -2,6 +2,14 @@ import {
   "Ryan-1125/moonfcgi" @fcgi,
   "moonbitlang/async",
   "moonbitlang/async/socket",
+  "moonbitlang/async/io",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/raw_fd",
+  "moonbitlang/core/encoding/utf8",
 }
 
 supported_targets = "+native"
+
+options(
+  "native-stub": [ "posix.c" ],
+)

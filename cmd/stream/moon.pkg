@@ -1,0 +1,10 @@
+import {
+  "Ryan-1125/moonfcgi" @fcgi,
+  "Ryan-1125/moonfcgi/server",
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

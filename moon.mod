@@ -11,7 +11,7 @@
 
 name = "Ryan-1125/moonfcgi"
 
-version = "0.1.0"
+version = "0.2.0"
 
 readme = "README.md"
 
@@ -23,7 +23,7 @@ keywords = [ "fastcgi", "fcgi", "server", "protocol" ]
 
 preferred_target = "native"
 
-description = "Bounded FastCGI 1.0 codec, Responder state machine and native async TCP server"
+description = "Native FastCGI codec, streaming Responder/Authorizer/Filter and TCP/POSIX server"
 
 import {
   "moonbitlang/async@0.20.0",

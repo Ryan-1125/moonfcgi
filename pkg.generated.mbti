@@ -72,6 +72,16 @@ pub struct Request {
 pub fn Request::param(Self, String) -> Bytes?
 pub fn Request::text_param(Self, String) -> String? raise
 
+pub struct RequestHead {
+  id : Int32
+  token : Int64
+  role : Role
+  params : Array[(Bytes, Bytes)]
+  // private fields
+}
+pub fn RequestHead::param(Self, String) -> Bytes?
+pub fn RequestHead::text_param(Self, String) -> String? raise
+
 pub struct Response {
   status : Int32
   headers : Array[(String, String)]
@@ -79,7 +89,16 @@ pub struct Response {
   stderr : Bytes
 }
 pub fn Response::cgi_bytes(Self, head? : Bool) -> Bytes raise ProtocolError
+pub fn Response::cgi_headers(Self, content_length? : Int32) -> Bytes raise ProtocolError
 pub fn Response::new(Bytes, status? : Int32, headers? : Array[(String, String)], stderr? : Bytes) -> Self raise ProtocolError
+
+pub(all) enum Role {
+  Responder
+  Authorizer
+  Filter
+} derive(Eq)
+pub fn Role::equal(Self, Self) -> Bool
+pub fn Role::not_equal(Self, Self) -> Bool
 
 pub struct Session {
   // private fields
@@ -89,6 +108,26 @@ pub fn Session::close(Self) -> Unit
 pub fn Session::complete(Self, Request, Response) -> Array[Event] raise ProtocolError
 pub fn Session::finish(Self) -> Unit raise ProtocolError
 pub fn Session::new(limits? : Limits) -> Self raise ProtocolError
+
+pub(all) enum StreamEvent {
+  Send(Array[Record])
+  Start(RequestHead)
+  Input(Int64, Int32, Bytes)
+  InputEnd(Int64, Int32)
+  Aborted(Int64)
+  Close
+}
+
+pub struct StreamSession {
+  // private fields
+}
+pub fn StreamSession::accept(Self, Record) -> Array[StreamEvent] raise ProtocolError
+pub fn StreamSession::can_output(Self, RequestHead) -> Bool
+pub fn StreamSession::close(Self) -> Unit
+pub fn StreamSession::complete(Self, RequestHead, app_status? : UInt32) -> Array[StreamEvent]
+pub fn StreamSession::finish(Self) -> Unit raise ProtocolError
+pub fn StreamSession::is_active(Self, RequestHead) -> Bool
+pub fn StreamSession::new(limits? : Limits, roles? : Array[Role]) -> Self raise
 
 // Type aliases
 

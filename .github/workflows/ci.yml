@@ -22,7 +22,7 @@ jobs:
           bash /tmp/moon-install.sh
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
           sudo apt-get update
-          sudo apt-get install -y nginx
+          sudo apt-get install -y nginx libfcgi-dev
           sudo systemctl stop nginx || true
       - name: Record actual versions
         run: |
@@ -32,6 +32,7 @@ jobs:
           node --version
           go version
           nginx -v
+          dpkg-query -W libfcgi-dev
       - name: Format, check, build, core tests and API
         run: |
           moon update
@@ -48,6 +49,10 @@ jobs:
           GO_REFERENCE_BIN="$PWD/../work/go-ref" NGINX_BIN="$(command -v nginx)" node tools/integration.mjs
       - name: Independent package consumer
         run: node tools/consumer.mjs
+      - name: Streaming, roles, Unix socket and inherited listener
+        run: |
+          cc -Wall -Wextra -Werror tools/reference/libfcgi.c -lfcgi -o ../work/libfcgi-ref
+          NGINX_BIN="$(command -v nginx)" LIBFCGI_REFERENCE_BIN="$PWD/../work/libfcgi-ref" node tools/stream-integration.mjs
       - name: Collect available diagnostic logs
         if: always()
         run: |

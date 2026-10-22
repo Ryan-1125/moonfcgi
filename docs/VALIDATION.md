@@ -1,5 +1,7 @@
 # 本地验收记录
 
+> 0.2.0 扩展复验（2026-10-22）：native 检查（deny-warn）、构建和 26 项核心测试通过；既有 13 组真实 TCP/Go/Nginx、11 组新增流式/角色/Nginx 联调通过；0.2.0 实际包归档的独立消费者通过。新增 Linux Unix/fd0/libfcgi 测试已写入 CI，尚未运行。详见 [扩展验收](STREAMING.md)。下文记录属于此前版本，不作为新增 POSIX 能力的通过证据。
+
 > 当前发布状态（2026-10-21）：Ryan-1125/moonfcgi 0.1.0 已发布 Mooncakes，依据用户提供的发布成功输出与包页面。下文“未发布”等文字保留为早期验收记录，不代表当前发布状态。
 >
 > 2026-10-21 本地复验：moon info、moon fmt、native check/build 成功，18 项核心测试、13 组真实 TCP/Go/Nginx 联调、1 项实际打包归档的独立消费者测试全部通过。首次受限沙箱运行出现监听启动失败及临时目录拒绝访问；同一套脚本在沙箱外重跑通过，没有跳过 Go/Nginx。独立消费者目录为 C:\Users\Lenovo\AppData\Local\Temp\moonfcgi-consumer-So9XB0。本次独立消费对象为本地发布归档，不是注册表下载。

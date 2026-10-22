@@ -103,7 +103,24 @@ pub fn Response::cgi_bytes(
   self : Response,
   head~ : Bool = false,
 ) -> Bytes raise ProtocolError {
+  let out = @buf.Buffer()
+  out.write_bytes(self.cgi_headers(content_length=self.body.length()))
+  if !head && self.status != 204 && self.status != 304 {
+    out.write_bytes(self.body)
+  }
+  out.to_bytes()
+}
+
+///|
+/// CGI headers for a streaming response. Omit length when it is not known.
+pub fn Response::cgi_headers(
+  self : Response,
+  content_length? : Int32,
+) -> Bytes raise ProtocolError {
   validate_response(self)
+  if content_length is Some(n) && n < 0 {
+    raise Invalid("negative response length")
+  }
   let out = @buf.Buffer()
   let reason = match self.status {
     200 => "OK"
@@ -138,12 +155,9 @@ pub fn Response::cgi_bytes(
     out.write_string_utf8("Content-Type: application/octet-stream\r\n")
   }
   let no_body = self.status == 204 || self.status == 304
-  if !no_body {
-    out.write_string_utf8("Content-Length: \{self.body.length()}\r\n")
+  if !no_body && content_length is Some(n) {
+    out.write_string_utf8("Content-Length: \{n}\r\n")
   }
   out.write_bytes(b"\r\n")
-  if !head && !no_body {
-    out.write_bytes(self.body)
-  }
   out.to_bytes()
 }

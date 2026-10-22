@@ -181,7 +181,9 @@ fn Session::accept_inner(
     }
     let keep = (data[2].to_int() & 1) != 0
     if data[0] != b'\x00' || data[1] != b'\x01' {
-      let events = [Send([end_record(record.id, protocol_status=3)])]
+      let events : Array[Event] = [
+        Send([end_record(record.id, protocol_status=3)]),
+      ]
       if !keep {
         self.closed = true
         events.push(Close)
@@ -212,7 +214,10 @@ fn Session::accept_inner(
       raise Invalid("ABORT_REQUEST content must be empty")
     }
     self.active = None
-    let events = [Aborted(pending.token), Send([end_record(pending.id)])]
+    let events : Array[Event] = [
+      Aborted(pending.token),
+      Send([end_record(pending.id)]),
+    ]
     if !pending.keep {
       self.closed = true
       events.push(Close)
@@ -297,7 +302,7 @@ pub fn Session::complete(
   }
   records.push(end_record(request.id))
   self.active = None
-  let events = [Send(records)]
+  let events : Array[Event] = [Send(records)]
   if !pending.keep {
     self.closed = true
     events.push(Close)

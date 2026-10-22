@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### 0.2.0 — streaming and deployment expansion
+
+- Add socket-independent StreamSession, RequestHead and explicit Responder,
+  Authorizer and Filter roles; preserve the original buffered API.
+- Start handlers at PARAMS EOF; provide bounded asynchronous STDIN/DATA queues,
+  incremental STDOUT/STDERR writes, unknown-length CGI headers and socket backpressure.
+- Add cancellation, early-response draining, generation-bound completion and
+  role-specific stream ordering/length validation to the streaming path.
+- Add POSIX filesystem Unix listeners and inherited TCP/Unix listening descriptors,
+  with restrictive permissions, descriptor ownership checks and conditional path cleanup.
+- Add a native streaming example, unbuffered Nginx configuration, independent wire
+  tests and Linux CI coverage for Unix/fd0 plus external libfcgi comparison.
+- Windows streaming/TCP/Nginx tests pass locally; POSIX and libfcgi runtime evidence
+  must come from the new Linux CI run, not previous-version CI results.
+
 - Validate CONTENT_LENGTH as soon as PARAMS terminates. Reject invalid decimal
   values, conflicting duplicates and configured body-limit violations before
   collecting STDIN. Reject a body overrun on the offending record; retain

@@ -3,6 +3,8 @@ package "Ryan-1125/moonfcgi/server"
 
 import {
   "Ryan-1125/moonfcgi",
+  "moonbitlang/async/io",
+  "moonbitlang/async/raw_fd",
   "moonbitlang/async/socket",
 }
 
@@ -11,9 +13,26 @@ pub async fn serve(String, async (@moonfcgi.Request) -> @moonfcgi.Response, conf
 
 pub async fn serve_connection(@socket.Tcp, async (@moonfcgi.Request) -> @moonfcgi.Response, config? : Config) -> Unit
 
+pub async fn serve_inherited(async (StreamRequest, ResponseWriter) -> Unit, fd? : Int32, config? : Config, roles? : Array[@moonfcgi.Role]) -> Unit
+
+pub async fn serve_raw_connection(@raw_fd.RawFdStream, async (StreamRequest, ResponseWriter) -> Unit, config? : Config, roles? : Array[@moonfcgi.Role]) -> Unit
+
+pub async fn serve_stream(String, async (StreamRequest, ResponseWriter) -> Unit, config? : Config, roles? : Array[@moonfcgi.Role]) -> Unit
+
+pub async fn serve_stream_connection(@socket.Tcp, async (StreamRequest, ResponseWriter) -> Unit, config? : Config, roles? : Array[@moonfcgi.Role]) -> Unit
+
+pub async fn serve_stream_io(&@io.Reader, &@io.Writer, async (StreamRequest, ResponseWriter) -> Unit, config? : Config, roles? : Array[@moonfcgi.Role]) -> Unit
+
+pub async fn serve_unix(String, async (StreamRequest, ResponseWriter) -> Unit, config? : Config, roles? : Array[@moonfcgi.Role], mode? : Int32) -> Unit
+
 // Errors
 
 // Types and methods
+pub struct BodyStream {
+  // private fields
+}
+pub async fn BodyStream::read(Self) -> Bytes?
+
 pub struct Config {
   limits : @moonfcgi.Limits
   cycle_timeout_ms : Int32
@@ -22,7 +41,22 @@ pub struct Config {
 }
 pub fn Config::new(limits? : @moonfcgi.Limits, cycle_timeout_ms? : Int32, write_timeout_ms? : Int32, handler_timeout_ms? : Int32) -> Self raise
 
+pub struct ResponseWriter {
+  // private fields
+}
+pub async fn ResponseWriter::start(Self, status? : Int32, headers? : Array[(String, String)], content_length? : Int32) -> Unit
+pub async fn ResponseWriter::write(Self, Bytes) -> Unit
+pub async fn ResponseWriter::write_stderr(Self, Bytes) -> Unit
+
+pub struct StreamRequest {
+  head : @moonfcgi.RequestHead
+  body : BodyStream
+  data : BodyStream
+}
+
 // Type aliases
 pub type Handler = async (@moonfcgi.Request) -> @moonfcgi.Response
+
+pub type StreamHandler = async (StreamRequest, ResponseWriter) -> Unit
 
 // Traits
