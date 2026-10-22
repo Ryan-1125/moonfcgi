@@ -81,4 +81,8 @@ node tools/consumer.mjs
 
 cmd/lifecycle 是带短期限、故障路由与停机路由的联调 fixture，不是生产应用模板。独立 Node 驱动通过真实 FastCGI 管理回复确认请求已经开始，避免用 stdout 缓冲状态或固定延迟冒充同步。
 
-当前 Windows 本地：28 项单元测试、10 组生命周期、13 组原有 TCP/Go/Nginx、11 组流式联调通过。Linux CI 已增加生命周期步骤，并另测自建 Unix socket 和继承 TCP/Unix listener 的优雅停机；其结果以实际运行记录为准。
+当前 Windows 本地：28 项单元测试、10 组生命周期、13 组原有 TCP/Go/Nginx、11 组流式联调及独立消费者通过。
+
+Linux 实测：[CI 39723922437](https://github.com/Ryan-1125/moonfcgi/actions/runs/39723922437)，提交 `67dbc3903c933e286da18a1cfa876a6a34aba29a`。Ubuntu 24.04、moon 0.1.20261020、moonc v0.10.16+b1a0e846e、Go 1.23.2、Nginx 1.24.0、libfcgi-dev 2.4.2-2.1ubuntu0.24.04.1。28 项单元测试、12 组生命周期、13 组原有联调、16 组流式/角色/POSIX/libfcgi 联调、1 项独立归档消费者全部通过。POSIX 额外验证自建 Unix 路径在排空后清理，以及继承 TCP/Unix listener 的优雅停机和调用方路径所有权。
+
+首次 Linux CI 39723657162 在生命周期第二个实例遇到固定端口的 TIME_WAIT；没有跳过断言或降低期限，驱动改为每实例申请独立空闲端口后全量复验通过。Windows 慢读测试还曾发现将取消误包装为 Transport 的分类错误，已通过保留取消类型修正，现报告 Deadline(Write)。失败记录保留。

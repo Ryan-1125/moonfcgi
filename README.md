@@ -169,7 +169,7 @@ moon run cmd/stream --target native -- unix:/run/moonfcgi/app.sock
 完整 API、停机语义、统计口径和验证命令见 [生命周期说明](docs/LIFECYCLE.md)。
 ## 测试与互操作
 
-2026-10-22 Windows 实测 **28 项核心与服务配置测试、原有 13 组真实 TCP/Go/Nginx 联调、新增 11 组流式/角色/Nginx 联调、10 组生命周期联调及 1 项独立包消费者验证**。此前流式扩展的 Linux CI 通过 26 项核心、13 组原有联调、16 组流式/角色/POSIX/libfcgi 联调和独立消费者；详见 [0.2.0 CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39717428442)。Windows x64 和 Ubuntu 24.04 native 均有运行记录；完整环境、断言和命令见 [验证记录](docs/VALIDATION.md)。
+2026-10-22 Windows 实测 **28 项核心与服务配置测试、原有 13 组真实 TCP/Go/Nginx 联调、新增 11 组流式/角色/Nginx 联调、10 组生命周期联调及 1 项独立包消费者验证**。本轮 Linux CI 通过 28 项单元测试、12 组生命周期、13 组原有联调、16 组流式/角色/POSIX/libfcgi 联调及独立消费者；详见 [0.2.0 CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39723922437)。Windows x64 和 Ubuntu 24.04 native 均有运行记录；完整环境、断言和命令见 [验证记录](docs/VALIDATION.md)。
 
 | 验证对象 | 覆盖内容 |
 |---|---|
