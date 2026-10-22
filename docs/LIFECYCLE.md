@@ -1,6 +1,6 @@
 # 服务生命周期、诊断与资源配置
 
-本节描述 0.2.0 源码中的新增接口，已发布 0.1.0 不包含这些接口。
+接口版本：0.2.0。安装入口与版本对应关系见 [README](../README.md)。
 
 ## 优雅停机
 
@@ -85,4 +85,4 @@ cmd/lifecycle 是带短期限、故障路由与停机路由的联调 fixture，�
 
 Linux 实测：[CI 39723922437](https://github.com/Ryan-1125/moonfcgi/actions/runs/39723922437)，提交 `67dbc3903c933e286da18a1cfa876a6a34aba29a`。Ubuntu 24.04、moon 0.1.20261020、moonc v0.10.16+b1a0e846e、Go 1.23.2、Nginx 1.24.0、libfcgi-dev 2.4.2-2.1ubuntu0.24.04.1。28 项单元测试、12 组生命周期、13 组原有联调、16 组流式/角色/POSIX/libfcgi 联调、1 项独立归档消费者全部通过。POSIX 额外验证自建 Unix 路径在排空后清理，以及继承 TCP/Unix listener 的优雅停机和调用方路径所有权。
 
-首次 Linux CI 39723657162 在生命周期第二个实例遇到固定端口的 TIME_WAIT；没有跳过断言或降低期限，驱动改为每实例申请独立空闲端口后全量复验通过。Windows 慢读测试还曾发现将取消误包装为 Transport 的分类错误，已通过保留取消类型修正，现报告 Deadline(Write)。失败记录保留。
+联调驱动为每实例申请独立空闲端口，避免 TIME_WAIT 干扰。慢读回归核对 Deadline(Write) 分类，停机回归核对连接和请求统计归零。

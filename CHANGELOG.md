@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 ### Service lifecycle and diagnostics
 
@@ -14,7 +14,7 @@
 - Preserve cancellation errors inside write timeouts so slow readers are reported
   as Deadline(Write), rather than being misclassified as transport failures.
 
-### 0.2.0 — streaming and deployment expansion
+### Streaming and deployment expansion
 
 - Add socket-independent StreamSession, RequestHead and explicit Responder,
   Authorizer and Filter roles; preserve the original buffered API.

@@ -3,3 +3,17 @@ AGENTS.md
 .github/
 tools/
 *.log
+/_build/
+/target/
+/.local/
+/ci-artifacts/
+/.ci-artifacts/
+/logs/
+/temp/
+/client_body_temp/
+/fastcgi_temp/
+/proxy_temp/
+/scgi_temp/
+/uwsgi_temp/
+/*申报书*.md
+/docs/shenbao.md
