@@ -127,6 +127,7 @@ pub fn StreamSession::close(Self) -> Unit
 pub fn StreamSession::complete(Self, RequestHead, app_status? : UInt32) -> Array[StreamEvent]
 pub fn StreamSession::finish(Self) -> Unit raise ProtocolError
 pub fn StreamSession::is_active(Self, RequestHead) -> Bool
+pub fn StreamSession::is_idle(Self) -> Bool
 pub fn StreamSession::new(limits? : Limits, roles? : Array[Role]) -> Self raise
 
 // Type aliases

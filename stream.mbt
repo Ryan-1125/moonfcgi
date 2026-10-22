@@ -89,6 +89,12 @@ pub fn StreamSession::close(self : StreamSession) -> Unit {
 }
 
 ///|
+/// True only after both input streams and the response have completed.
+pub fn StreamSession::is_idle(self : StreamSession) -> Bool {
+  !self.closed && self.pending is None
+}
+
+///|
 pub fn StreamSession::finish(self : StreamSession) -> Unit raise ProtocolError {
   let incomplete = self.pending is Some(_)
   self.close()

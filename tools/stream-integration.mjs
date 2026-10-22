@@ -3,13 +3,13 @@ import net from 'node:net';
 import http from 'node:http';
 import assert from 'node:assert/strict';
 import {spawn,spawnSync} from 'node:child_process';
-import {existsSync, mkdirSync, writeFileSync, statSync} from 'node:fs';
+import {existsSync, mkdirSync, writeFileSync, readFileSync, statSync, unlinkSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const win=process.platform==='win32', base=resolve(root,'_build/native/debug/build/cmd/stream/stream');
 const exe=process.env.MOONFCGI_STREAM_BIN||(existsSync(base+'.exe')?base+'.exe':base);
-const work=resolve(root,process.env.MOONFCGI_WORK_DIR||'.local/work');mkdirSync(work,{recursive:true});
+const work=resolve(root,process.env.MOONFCGI_WORK_DIR||(existsSync(resolve(root,'.local/work'))?'.local/work':'../work'));mkdirSync(work,{recursive:true});
 const children=[], log=[];let passed=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function start(bin,args){const p=spawn(bin,args,{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});children.push(p);p.on('error',e=>log.push(String(e)));for(const s of [p.stdout,p.stderr])s.on('data',b=>log.push(b.toString()));return p;}
@@ -26,7 +26,7 @@ class Client{
 async function ready(endpoint){for(let i=0;i<100;i++){try{const c=await Client.open(endpoint);c.close();return;}catch{await sleep(50);}}throw Error('listener unavailable: '+log.join(''));}
 async function test(name,f){await f();passed++;console.log('PASS '+name);}
 async function exchange(endpoint,role,pairs=[],stdin=Buffer.alloc(0),data=null){const c=await Client.open(endpoint);try{c.socket.write(begin(role,1,pairs));if(role!==2){for(let i=0;i<stdin.length;i+=60000)c.socket.write(frame(5,1,stdin.subarray(i,i+60000)));c.socket.write(frame(5));}if(data!==null){for(let i=0;i<data.length;i+=60000)c.socket.write(frame(8,1,data.subarray(i,i+60000)));c.socket.write(frame(8));}return await c.response();}finally{c.close();}}
-let nginxProcess;let nginxPrefix;let upstream='127.0.0.1:19100';
+let nginxProcess;let nginxPrefix;let upstream='127.0.0.1:19100';let inheritedPath;let protectedPath;
 try{
  start(exe,['127.0.0.1:19100','test']);await ready(19100);
  await test('response headers and echoed bytes arrive before STDIN terminator',async()=>{
@@ -61,7 +61,7 @@ try{
   }
  });
  await test('slow consumer cycle timeout releases input backpressure',async()=>{
-  const c=await Client.open(19100);try{c.socket.write(begin(1,1,[['DOCUMENT_URI','/slow']]));for(let i=0;i<20;i++)c.socket.write(frame(5,1,Buffer.alloc(60000)));while(await c.next()){}assert(c.closed);}finally{c.close();}
+  const c=await Client.open(19100);const started=performance.now();try{c.socket.write(begin(1,1,[['DOCUMENT_URI','/slow']]));for(let i=0;i<20;i++)c.socket.write(frame(5,1,Buffer.alloc(60000)));while(await c.next()){}assert(c.closed);assert(performance.now()-started<4200,'early handler return extended the unfinished input cycle');}finally{c.close();}
  });
  if(!win){
   const path=resolve(work,'stream.sock');start(exe,['unix:'+path,'test']);await ready(path);
@@ -69,6 +69,18 @@ try{
   await test('real Unix socket binary exchange and restrictive permissions',async()=>{assert.equal(statSync(path).mode&0o777,0o600);assert.deepEqual((await exchange(path,1,[],Buffer.from([0,255]))).body,Buffer.from([0,255]));});
   start(process.env.PYTHON_BIN||'python3',[resolve(root,'tools/inherited-launch.py'),exe,'19101']);await ready(19101);
   await test('real fd0 inherited TCP listener',async()=>{assert.equal((await exchange(19101,1,[],Buffer.from('fd0'))).body.toString(),'fd0');});
+  inheritedPath=resolve(work,'inherited.sock');
+  start(process.env.PYTHON_BIN||'python3',[resolve(root,'tools/inherited-launch.py'),exe,'unix:'+inheritedPath]);await ready(inheritedPath);
+  await test('real fd0 inherited Unix listener',async()=>{assert.deepEqual((await exchange(inheritedPath,1,[],Buffer.from([0,255,5]))).body,Buffer.from([0,255,5]));});
+  await test('Unix listener cleanup and pre-existing path protection',async()=>{
+   const cleanPath=resolve(work,'cleanup.sock');const child=start(exe,['unix:'+cleanPath,'test']);await ready(cleanPath);
+   const exited=new Promise((res,rej)=>{const timer=setTimeout(()=>rej(Error('Unix listener failed to stop')),5000);child.once('exit',()=>{clearTimeout(timer);res();});});
+   child.kill('SIGTERM');await exited;assert(!existsSync(cleanPath),'owned Unix path was not removed');
+   protectedPath=resolve(work,`protected-${process.pid}.sock`);writeFileSync(protectedPath,'preserve existing file',{flag:'wx'});
+   const refused=start(exe,['unix:'+protectedPath,'test']);
+   const code=await new Promise((res,rej)=>{const timer=setTimeout(()=>rej(Error('listener failed to reject existing path')),5000);refused.once('exit',code=>{clearTimeout(timer);res(code);});});
+   assert.notEqual(code,0);assert.equal(readFileSync(protectedPath,'utf8'),'preserve existing file');
+  });
   const reference=process.env.LIBFCGI_REFERENCE_BIN;
   if(!reference)throw Error('Linux suite requires LIBFCGI_REFERENCE_BIN for real libfcgi comparison');
   start(reference,[':19102']);await ready(19102);
@@ -113,5 +125,7 @@ try{
  await sleep(200);
  for(const child of children.reverse())child.kill();
  await sleep(150);
+ if(inheritedPath&&existsSync(inheritedPath))unlinkSync(inheritedPath);
+ if(protectedPath&&existsSync(protectedPath))unlinkSync(protectedPath);
  if(log.length)writeFileSync(resolve(work,'stream-integration.log'),log.join(''));
 }

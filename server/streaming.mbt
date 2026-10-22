@@ -269,7 +269,9 @@ pub async fn serve_stream_io(
                 // Once the application returns, drain remaining input without buffering.
                 request.body.queue.close(clear=true)
                 request.data.queue.close(clear=true)
-                timer.refresh()
+                if session.is_idle() {
+                  timer.refresh()
+                }
                 if close {
                   group.return_immediately(())
                 }
@@ -320,6 +322,10 @@ pub async fn serve_stream_io(
             }
             Send(_) => ()
           }
+        }
+        // Early responses do not reset the input deadline until draining finishes.
+        if (record.kind == 5 || record.kind == 8) && session.is_idle() {
+          timer.refresh()
         }
       }
     }

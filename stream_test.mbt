@@ -56,10 +56,13 @@ test "stream handler starts at PARAMS EOF and STDIN is not buffered" {
 ///|
 test "early streaming response drains before request ID reuse" {
   let (session, head) = start_stream()
+  assert_true(!session.is_idle())
   ignore(session.complete(head))
+  assert_true(!session.is_idle())
   assert_true(!session.is_active(head))
   ignore(session.accept({ kind: 5, id: 1, content: b"discard", }))
   ignore(session.accept({ kind: 5, id: 1, content: b"", }))
+  assert_true(session.is_idle())
   session.finish()
 }
 
