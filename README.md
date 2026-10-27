@@ -86,6 +86,8 @@ curl http://127.0.0.1:8080/download -o download.bin
 
 ## 验证
 
+协议核心另含 6 组固定种子的[健壮性与随机测试](docs/ROBUSTNESS.md)，覆盖独立字节向量、随机分片、异常长度、截断及请求状态模型；当前本地单元测试合计 34 项。
+
 [Linux CI](https://github.com/Ryan-1125/moonfcgi/actions/runs/39724214744) 覆盖格式、检查、构建、接口一致性、**28 项单元测试、13 组协议联调、16 组流式/角色/POSIX 联调、12 组生命周期联调，以及独立包消费者**。
 
 互操作对象包括真实 Nginx、Go 1.23.2 `net/http/fcgi` 和系统 libfcgi。测试覆盖请求结束前的双向传输、9 MiB 二进制上传、上游连接复用、角色处理、超时、中止、Unix/fd 接入及优雅停机。

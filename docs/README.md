@@ -7,6 +7,7 @@
 - [服务生命周期与诊断](LIFECYCLE.md)
 - [安装与部署](DEPLOYMENT.md)
 - [测试与兼容性](VALIDATION.md)
+- [协议健壮性与随机测试](ROBUSTNESS.md)
 - [规范及参考来源](RESEARCH.md)
 - [项目功能说明](PROJECT.md)
 - [项目申报书](shenbao.md)

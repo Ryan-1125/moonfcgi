@@ -1,5 +1,7 @@
 # 验证与兼容性
 
+2026-10-27 新增 6 组确定性协议健壮性测试，Windows native 共 34 项测试通过。固定种子、语料范围与复现方式见 [随机测试说明](ROBUSTNESS.md)。下表保留对应 Linux CI 提交的实际验收数量。
+
 [Linux CI 39724214744](https://github.com/Ryan-1125/moonfcgi/actions/runs/39724214744) 对提交 `1096d76` 全量检查通过。
 
 | 平台 | 验证结果 |
