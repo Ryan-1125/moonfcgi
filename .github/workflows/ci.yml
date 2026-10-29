@@ -51,6 +51,8 @@ jobs:
         run: node tools/consumer.mjs
       - name: Graceful shutdown, observer isolation and staged deadlines
         run: node tools/lifecycle-integration.mjs
+      - name: Sustained TCP cleanup and restart regression
+        run: MOONFCGI_SOAK_SECONDS=60 node tools/lifecycle-integration.mjs
       - name: Streaming, roles, Unix socket and inherited listener
         run: |
           cc -Wall -Wextra -Werror tools/reference/libfcgi.c -lfcgi -o ../work/libfcgi-ref

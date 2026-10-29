@@ -39,6 +39,10 @@ function metric(s,name){const line=s.log.includes('STATS ')?s.log.slice(s.log.in
 async function stop(s){const c=await Client.open(s.port);try{c.request('/shutdown');assert.equal((await c.response()).body.toString(),'ok');}finally{c.close();}assert.equal(await s.ended,0);assert.equal(metric(s,'active_connections'),0);assert.equal(metric(s,'active_requests'),0);}
 async function test(name,f){await f();passed++;console.log('PASS '+name);}
 try{
+ if(process.env.MOONFCGI_SOAK_SECONDS){
+ const {runSoak}=await import('./soak.mjs');
+ await runSoak({server,Client,frame,begin,stop,sleep,metric,root});
+ }else{
  for(const mode of ['stream','buffered']){
   await test(`${mode}: graceful shutdown drains active response and rejects new connections`,async()=>{
    const s=await server(mode),active=await Client.open(s.port);
@@ -97,6 +101,7 @@ try{
   });
  }
  console.log(`TOTAL ${passed} lifecycle integration groups passed`);
+ }
 }finally{
  for(const child of children)if(child.exitCode===null)child.kill();
  const work=resolve(root,process.env.MOONFCGI_WORK_DIR||(existsSync(resolve(root,'.local/work'))?'.local/work':'../work'));mkdirSync(work,{recursive:true});writeFileSync(resolve(work,'lifecycle-integration.log'),logs.join('\n'));

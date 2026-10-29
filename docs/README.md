@@ -13,3 +13,4 @@
 - [项目申报书](shenbao.md)
 - [变更记录](../CHANGELOG.md)
 - [第三方许可](../THIRD_PARTY_NOTICES.md)
+- [持续运行与资源回收](SOAK.md)
