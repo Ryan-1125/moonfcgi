@@ -15,3 +15,4 @@
 - [第三方许可](../THIRD_PARTY_NOTICES.md)
 - [持续运行与资源回收](SOAK.md)
 - [发布包消费回归](REGISTRY-CONSUMER.md)
+- [Linux 部署交付](LINUX.md)

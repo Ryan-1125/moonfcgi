@@ -42,6 +42,13 @@ jobs:
           moon test --target native
           moon info
           git diff --exit-code -- '*.mbti'
+      - name: Validate Linux deployment artifacts
+        run: |
+          sudo install -d /opt/moonfcgi
+          sudo install -m 0755 _build/native/debug/build/cmd/service/service /opt/moonfcgi/moonfcgi-service
+          systemd-analyze verify deploy/linux/moonfcgi.service
+          printf 'pid /tmp/moonfcgi-nginx.pid; error_log stderr; events {} http { include %s/deploy/linux/nginx.conf; }\n' "$PWD" > /tmp/moonfcgi-nginx.conf
+          sudo nginx -t -c /tmp/moonfcgi-nginx.conf
       - name: Real TCP, fixed Go reference and real Nginx
         run: |
           mkdir -p ../work
