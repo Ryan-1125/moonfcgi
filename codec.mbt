@@ -1,20 +1,22 @@
 ///|
+#derive(Debug)
 pub suberror ProtocolError {
   Invalid(String)
   Limit(String)
   Truncated(String)
-} derive(Debug)
+}
 
 ///|
 pub extend ProtocolError with @debug.Debug::{to_repr}
 
 ///|
 /// A protocol record; content is immutable and independent of decoder storage.
+#derive(Eq, Debug)
 pub(all) struct Record {
   kind : Int32
   id : Int32
   content : Bytes
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Record with Eq::{equal, not_equal}

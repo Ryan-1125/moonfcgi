@@ -16,3 +16,4 @@
 - [持续运行与资源回收](SOAK.md)
 - [发布包消费回归](REGISTRY-CONSUMER.md)
 - [Linux 部署交付](LINUX.md)
+- [2026-11 工具链兼容维护](COMPATIBILITY.md)

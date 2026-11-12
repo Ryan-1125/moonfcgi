@@ -15,11 +15,12 @@ pub fn end_record(Int32, app_status? : UInt32, protocol_status? : Int32) -> Reco
 pub fn stream_records(Int32, Int32, Bytes) -> Array[Record]
 
 // Errors
+#derive(@debug.Debug)
 pub suberror ProtocolError {
   Invalid(String)
   Limit(String)
   Truncated(String)
-} derive(@debug.Debug)
+}
 pub fn ProtocolError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
@@ -53,11 +54,12 @@ pub fn ParamsDecoder::feed(Self, Bytes) -> Unit raise ProtocolError
 pub fn ParamsDecoder::finish(Self) -> Array[(Bytes, Bytes)] raise ProtocolError
 pub fn ParamsDecoder::new(limit? : Int32, max_pairs? : Int32) -> Self raise ProtocolError
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Record {
   kind : Int32
   id : Int32
   content : Bytes
-} derive(Eq, @debug.Debug)
+}
 pub fn Record::equal(Self, Self) -> Bool
 pub fn Record::not_equal(Self, Self) -> Bool
 pub fn Record::to_repr(Self) -> @debug.Repr
@@ -92,11 +94,12 @@ pub fn Response::cgi_bytes(Self, head? : Bool) -> Bytes raise ProtocolError
 pub fn Response::cgi_headers(Self, content_length? : Int32) -> Bytes raise ProtocolError
 pub fn Response::new(Bytes, status? : Int32, headers? : Array[(String, String)], stderr? : Bytes) -> Self raise ProtocolError
 
+#derive(Eq)
 pub(all) enum Role {
   Responder
   Authorizer
   Filter
-} derive(Eq)
+}
 pub fn Role::equal(Self, Self) -> Bool
 pub fn Role::not_equal(Self, Self) -> Bool
 

@@ -28,7 +28,7 @@ assert(!existsSync(resolve(dir,'moon.work')));
 run(['update']);run(['check','--target','native','--deny-warn']);run(['build','--target','native']);
 const probe=net.createServer();await new Promise(r=>probe.listen(0,'127.0.0.1',r));const port=probe.address().port;await new Promise(r=>probe.close(r));
 const base=resolve(dir,'_build/native/debug/build/registry');
-const child=spawn(process.platform==='win32'?base+'.exe':base,[`127.0.0.1:${port}`],{cwd:dir,windowsHide:true,stdio:['ignore','pipe','pipe']});
+const child=spawn(existsSync(base+'.exe')?base+'.exe':base,[`127.0.0.1:${port}`],{cwd:dir,windowsHide:true,stdio:['ignore','pipe','pipe']});
 let log='';child.stdout.on('data',b=>log+=b);child.stderr.on('data',b=>log+=b);
 let spawnError;child.on('error',e=>{spawnError=e;});
 const ended=new Promise(r=>child.once('close',r));

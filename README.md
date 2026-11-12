@@ -30,7 +30,7 @@ moon test --target native
 moon run cmd/stream --target native -- 127.0.0.1:9000
 ```
 
-工具链验证环境：moon 0.1.20261020、moonc v0.10.16+b1a0e846e；官方异步依赖为 `moonbitlang/async 0.20.0`。服务端使用 native 后端，Windows x64 与 Ubuntu 24.04 均有实际运行验证。
+2026-11-12 Windows native 工具链验证：moon 0.1.20261104、moonc v0.10.20+65efd5b93；官方异步依赖为 `moonbitlang/async 0.20.0`。服务端使用 native 后端，Windows x64 与 Ubuntu 24.04 均有实际运行验证。
 
 | 分发入口 | 版本 | 接口范围 |
 |---|---|---|

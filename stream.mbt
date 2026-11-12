@@ -1,9 +1,10 @@
 ///|
+#derive(Eq)
 pub(all) enum Role {
   Responder
   Authorizer
   Filter
-} derive(Eq)
+}
 
 ///|
 pub struct RequestHead {

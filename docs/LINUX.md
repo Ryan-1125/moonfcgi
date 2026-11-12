@@ -12,7 +12,7 @@ moon build --target native
 sudo apt-get install nginx
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin moonfcgi
 sudo install -d -m 0755 /opt/moonfcgi
-sudo install -m 0755 _build/native/debug/build/cmd/service/service /opt/moonfcgi/moonfcgi-service
+sudo install -m 0755 _build/native/debug/build/cmd/service/service.exe /opt/moonfcgi/moonfcgi-service
 sudo install -m 0644 deploy/linux/moonfcgi.service /etc/systemd/system/moonfcgi.service
 sudo install -m 0644 deploy/linux/nginx.conf /etc/nginx/conf.d/moonfcgi.conf
 sudo systemctl daemon-reload

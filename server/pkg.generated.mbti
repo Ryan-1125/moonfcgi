@@ -27,12 +27,13 @@ pub async fn serve_stream_io(&@io.Reader, &@io.Writer, async (StreamRequest, Res
 pub async fn serve_unix(String, async (StreamRequest, ResponseWriter) -> Unit, config? : Config, roles? : Array[@moonfcgi.Role], mode? : Int32) -> Unit
 
 // Errors
+#derive(@debug.Debug)
 pub suberror ServerError {
   Protocol(String)
   Transport(String)
   Handler(String)
   Deadline(Stage)
-} derive(@debug.Debug)
+}
 pub fn ServerError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
@@ -63,16 +64,18 @@ pub fn Control::is_stopping(Self) -> Bool
 pub fn Control::new() -> Self
 pub fn Control::shutdown(Self) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Outcome {
   Completed
   Failed
   Aborted
   Cancelled
-} derive(Eq, @debug.Debug)
+}
 pub fn Outcome::equal(Self, Self) -> Bool
 pub fn Outcome::not_equal(Self, Self) -> Bool
 pub fn Outcome::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct RequestReport {
   connection_id : Int64
   request_id : Int32
@@ -80,7 +83,7 @@ pub(all) struct RequestReport {
   elapsed_ms : Int64
   input_content_bytes : Int64
   output_content_bytes : Int64
-} derive(@debug.Debug)
+}
 pub fn RequestReport::to_repr(Self) -> @debug.Repr
 
 pub struct ResponseWriter {
@@ -90,15 +93,17 @@ pub async fn ResponseWriter::start(Self, status? : Int32, headers? : Array[(Stri
 pub async fn ResponseWriter::write(Self, Bytes) -> Unit
 pub async fn ResponseWriter::write_stderr(Self, Bytes) -> Unit
 
+#derive(@debug.Debug)
 pub(all) enum ServerEvent {
   ConnectionOpened(Int64)
   RequestStarted(Int64, Int32)
   RequestFinished(RequestReport)
   ConnectionError(Int64, ServerError)
   ConnectionClosed(Int64)
-} derive(@debug.Debug)
+}
 pub fn ServerEvent::to_repr(Self) -> @debug.Repr
 
+#derive(@debug.Debug)
 pub(all) struct Snapshot {
   connections : Int64
   active_connections : Int64
@@ -115,9 +120,10 @@ pub(all) struct Snapshot {
   handler_errors : Int64
   timeouts : Int64
   observer_errors : Int64
-} derive(@debug.Debug)
+}
 pub fn Snapshot::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Stage {
   Idle
   Input
@@ -125,7 +131,7 @@ pub(all) enum Stage {
   Write
   Cycle
   Shutdown
-} derive(Eq, @debug.Debug)
+}
 pub fn Stage::equal(Self, Self) -> Bool
 pub fn Stage::not_equal(Self, Self) -> Bool
 pub fn Stage::to_repr(Self) -> @debug.Repr

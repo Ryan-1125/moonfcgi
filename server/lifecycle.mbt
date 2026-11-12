@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum Stage {
   Idle
   Input
@@ -6,7 +7,7 @@ pub(all) enum Stage {
   Write
   Cycle
   Shutdown
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Stage with Eq::{equal, not_equal}
@@ -15,23 +16,25 @@ pub extend Stage with Eq::{equal, not_equal}
 pub extend Stage with @debug.Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub suberror ServerError {
   Protocol(String)
   Transport(String)
   Handler(String)
   Deadline(Stage)
-} derive(Debug)
+}
 
 ///|
 pub extend ServerError with @debug.Debug::{to_repr}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Outcome {
   Completed
   Failed
   Aborted
   Cancelled
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend Outcome with Eq::{equal, not_equal}
@@ -40,6 +43,7 @@ pub extend Outcome with Eq::{equal, not_equal}
 pub extend Outcome with @debug.Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub(all) struct RequestReport {
   connection_id : Int64
   request_id : Int32
@@ -47,24 +51,26 @@ pub(all) struct RequestReport {
   elapsed_ms : Int64
   input_content_bytes : Int64
   output_content_bytes : Int64
-} derive(Debug)
+}
 
 ///|
 pub extend RequestReport with @debug.Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub(all) enum ServerEvent {
   ConnectionOpened(Int64)
   RequestStarted(Int64, Int32)
   RequestFinished(RequestReport)
   ConnectionError(Int64, ServerError)
   ConnectionClosed(Int64)
-} derive(Debug)
+}
 
 ///|
 pub extend ServerEvent with @debug.Debug::{to_repr}
 
 ///|
+#derive(Debug)
 pub(all) struct Snapshot {
   connections : Int64
   active_connections : Int64
@@ -81,7 +87,7 @@ pub(all) struct Snapshot {
   handler_errors : Int64
   timeouts : Int64
   observer_errors : Int64
-} derive(Debug)
+}
 
 ///|
 pub extend Snapshot with @debug.Debug::{to_repr}
